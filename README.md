@@ -25,6 +25,8 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 
 ## Quality
 
+GitHub Actions runs these gates on pull requests and pushes to `main`.
+
 ```bash
 npm run test
 npm run lint
