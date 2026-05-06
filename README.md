@@ -10,6 +10,7 @@ The front page of AI slop: a Product Hunt parody for AI weekend projects.
 - File-backed local slop/reaction store for development before Supabase keys exist
 - Claude metadata adapter with safe fallback when `ANTHROPIC_API_KEY` is missing
 - One-time Reslop tagline reroll and share CTAs on the submission reveal
+- Cron-backed Slop of the Day calculation with Hall of Slop storage
 - OG card route at `/api/og/[slug]`
 - Unit tests for validation, ranking, reactions, local persistence, sharing, slugging, and AI response parsing
 - Supabase SQL schema starter in `supabase/schema.sql`
@@ -47,6 +48,6 @@ The app builds without keys by using local fallbacks, but production submissions
 
 1. Add the Turnstile client widget to the submit and first-reaction flows.
 2. Add Google Safe Browsing and profanity/disposable-email checks.
-3. Add Slop of the Day cron and persistent Hall of Slop winners.
+3. Add Slop of the Day homepage polish and winner backfill tooling.
 4. Add fuller mobile/browser verification for the QR submission flow.
 5. Seed 10-20 founding slops for launch readiness.

@@ -4,6 +4,11 @@ import { randomUUID } from "node:crypto";
 import { nanoid } from "nanoid";
 import type { ReactionCounts, Slop } from "@/lib/domain/slop";
 import { createEmptyReactionCounts, createSlug } from "@/lib/domain/slop";
+import {
+  previousUtcDateKey,
+  selectSlopOfTheDay,
+  type SlopOfTheDaySelection,
+} from "@/lib/domain/slop-of-the-day";
 import { parseSubmissionInput, type SubmissionInput } from "@/lib/domain/validation";
 import { parseTagline } from "@/lib/domain/manage";
 import { getSupabaseAdminClient } from "@/lib/server/clients";
@@ -15,21 +20,27 @@ import {
   getSlopByManageTokenFromSupabase,
   insertReactionIntoSupabase,
   insertSlopIntoSupabase,
+  listSlopOfTheDayFromSupabase,
   listSlopsFromSupabase,
   reslopSlopInSupabase,
   softDeleteSlopInSupabase,
   updateSlopTaglineInSupabase,
+  upsertSlopOfTheDayInSupabase,
 } from "@/lib/server/supabase-store";
 import {
   getLocalSlopByManageToken,
   getLocalSlopBySlug,
   insertLocalReaction,
   insertLocalSlop,
+  listLocalSlopOfTheDay,
   listLocalSlops,
   reslopLocalSlop,
   softDeleteLocalSlop,
   updateLocalSlopTagline,
+  upsertLocalSlopOfTheDay,
 } from "@/lib/server/local-store";
+
+export type SlopOfTheDay = SlopOfTheDaySelection;
 
 export async function listSlops(): Promise<Slop[]> {
   const client = getSupabaseAdminClient();
@@ -146,6 +157,33 @@ export async function recordReaction(params: {
 export async function getReactionCounts(slug: string): Promise<ReactionCounts> {
   const slop = await getSlopBySlug(slug);
   return slop?.reactionCounts ?? createEmptyReactionCounts();
+}
+
+export async function listSlopOfTheDayWinners(): Promise<SlopOfTheDay[]> {
+  const client = getSupabaseAdminClient();
+  if (client) {
+    return listSlopOfTheDayFromSupabase(client);
+  }
+
+  return listLocalSlopOfTheDay();
+}
+
+export async function getLatestSlopOfTheDay(): Promise<SlopOfTheDay | undefined> {
+  return (await listSlopOfTheDayWinners())[0];
+}
+
+export async function calculateSlopOfTheDay(
+  dateKey = previousUtcDateKey(),
+): Promise<SlopOfTheDay | null> {
+  const winner = selectSlopOfTheDay(await listSlops(), dateKey);
+  if (!winner) {
+    return null;
+  }
+
+  const client = getSupabaseAdminClient();
+  return client
+    ? upsertSlopOfTheDayInSupabase(client, winner)
+    : upsertLocalSlopOfTheDay(winner);
 }
 
 export async function updateSlopTaglineByToken(

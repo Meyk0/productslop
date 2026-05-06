@@ -7,9 +7,20 @@ import { createEmptyReactionCounts, isReactionType } from "@/lib/domain/slop";
 import { applyReaction, reactionLedgerKey } from "@/lib/domain/reactions";
 import { seedSlops } from "@/lib/data/mock-slops";
 
+export type StoredSlopOfTheDay = {
+  date: string;
+  slop: Slop;
+  totalReactions: number;
+};
+
 type LocalStore = {
   slops: Slop[];
   reactionLedger: string[];
+  slopOfTheDay: Array<{
+    date: string;
+    slopId: string;
+    totalReactions: number;
+  }>;
 };
 
 const storePath = path.join(process.cwd(), ".data", "local-store.json");
@@ -119,6 +130,48 @@ export async function insertLocalReaction(params: {
   };
 }
 
+export async function listLocalSlopOfTheDay(): Promise<StoredSlopOfTheDay[]> {
+  const store = await readLocalStore();
+  return store.slopOfTheDay
+    .toSorted((left, right) => right.date.localeCompare(left.date))
+    .flatMap((winner) => {
+      const slop = store.slops.find(
+        (candidate) => candidate.id === winner.slopId && !candidate.deletedAt,
+      );
+
+      return slop
+        ? [
+            {
+              date: winner.date,
+              slop,
+              totalReactions: winner.totalReactions,
+            },
+          ]
+        : [];
+    });
+}
+
+export async function upsertLocalSlopOfTheDay(
+  winner: StoredSlopOfTheDay,
+): Promise<StoredSlopOfTheDay> {
+  const store = await readLocalStore();
+  const existingIndex = store.slopOfTheDay.findIndex((entry) => entry.date === winner.date);
+  const entry = {
+    date: winner.date,
+    slopId: winner.slop.id,
+    totalReactions: winner.totalReactions,
+  };
+
+  if (existingIndex === -1) {
+    store.slopOfTheDay.push(entry);
+  } else {
+    store.slopOfTheDay[existingIndex] = entry;
+  }
+
+  await writeLocalStore(store);
+  return winner;
+}
+
 async function readLocalStore(): Promise<LocalStore> {
   try {
     const raw = await readFile(storePath, "utf8");
@@ -126,6 +179,7 @@ async function readLocalStore(): Promise<LocalStore> {
     return {
       slops: normalizeSlops(parsed.slops),
       reactionLedger: Array.isArray(parsed.reactionLedger) ? parsed.reactionLedger : [],
+      slopOfTheDay: normalizeSlopOfTheDay(parsed.slopOfTheDay),
     };
   } catch {
     const initialStore = {
@@ -134,6 +188,7 @@ async function readLocalStore(): Promise<LocalStore> {
         reactionCounts: { ...slop.reactionCounts },
       })),
       reactionLedger: [],
+      slopOfTheDay: [],
     };
     await writeLocalStore(initialStore);
     return initialStore;
@@ -158,4 +213,29 @@ function normalizeSlops(slops: unknown): Slop[] {
       ...(slop as Slop).reactionCounts,
     },
   }));
+}
+
+function normalizeSlopOfTheDay(slops: unknown): LocalStore["slopOfTheDay"] {
+  if (!Array.isArray(slops)) {
+    return [];
+  }
+
+  return slops.flatMap((winner) => {
+    const candidate = winner as Partial<LocalStore["slopOfTheDay"][number]>;
+    if (
+      typeof candidate.date !== "string" ||
+      typeof candidate.slopId !== "string" ||
+      typeof candidate.totalReactions !== "number"
+    ) {
+      return [];
+    }
+
+    return [
+      {
+        date: candidate.date,
+        slopId: candidate.slopId,
+        totalReactions: candidate.totalReactions,
+      },
+    ];
+  });
 }

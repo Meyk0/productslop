@@ -95,6 +95,31 @@ describe("local store", () => {
       reactionCounts: { ...createEmptyReactionCounts(), delve: 1 },
     });
   });
+
+  it("upserts and lists local Slop of the Day winners", async () => {
+    const store = await import("@/lib/server/local-store");
+    const slop = makeSlop();
+
+    await store.insertLocalSlop(slop);
+    await store.upsertLocalSlopOfTheDay({
+      date: "2026-05-06",
+      slop,
+      totalReactions: 4,
+    });
+    await store.upsertLocalSlopOfTheDay({
+      date: "2026-05-06",
+      slop,
+      totalReactions: 5,
+    });
+
+    await expect(store.listLocalSlopOfTheDay()).resolves.toEqual([
+      {
+        date: "2026-05-06",
+        slop,
+        totalReactions: 5,
+      },
+    ]);
+  });
 });
 
 function makeSlop(): Slop {
