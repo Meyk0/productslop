@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { ExternalLink, LoaderCircle, RefreshCcw, Send, Share2, Sparkles } from "lucide-react";
 import { TradingCard } from "@/components/trading-card";
+import { requestTurnstileToken } from "@/lib/client/turnstile";
 import { buildLinkedInShareUrl, buildProjectUrl, buildXShareUrl } from "@/lib/domain/share";
 import type { Slop } from "@/lib/domain/slop";
 
@@ -14,7 +15,7 @@ const loadingCopy = [
   "checking if this is a wrapper...",
 ];
 
-export function SubmitForm() {
+export function SubmitForm({ turnstileSiteKey }: { turnstileSiteKey?: string }) {
   const [startedAt] = useState(() => Date.now());
   const [status, setStatus] = useState<"idle" | "loading" | "revealed">("idle");
   const [reslopStatus, setReslopStatus] = useState<"idle" | "loading">("idle");
@@ -47,10 +48,16 @@ export function SubmitForm() {
     }, 800);
 
     try {
+      const turnstileToken = await requestTurnstileToken(turnstileSiteKey, "submit");
+      const payload = Object.fromEntries(formData.entries());
+      if (turnstileToken) {
+        payload.turnstileToken = turnstileToken;
+      }
+
       const response = await fetch("/api/slops", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify(Object.fromEntries(formData.entries())),
+        body: JSON.stringify(payload),
       });
 
       const data = (await response.json()) as { slop?: Slop; error?: string };

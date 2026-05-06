@@ -21,7 +21,7 @@ export default function SubmitPage() {
           a durable dev launch while service keys are not configured.
         </p>
       </div>
-      <SubmitForm />
+      <SubmitForm turnstileSiteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY} />
     </div>
   );
 }

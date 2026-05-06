@@ -62,7 +62,10 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
             <p className="mt-4 max-w-2xl text-xl leading-8 text-muted">{slop.tagline}</p>
           </div>
 
-          <ReactionMenu slop={slop} />
+          <ReactionMenu
+            slop={slop}
+            turnstileSiteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
+          />
 
           <section>
             <div className="mb-4 flex items-center justify-between gap-4">
