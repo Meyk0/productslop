@@ -1,0 +1,32 @@
+import { z } from "zod";
+import { SLOP_TYPES, type SlopType } from "@/lib/domain/slop";
+
+const slopTypeIds = SLOP_TYPES.map((type) => type.id) as [SlopType, ...SlopType[]];
+
+export const aiSlopMetadataSchema = z.object({
+  tagline: z.string().trim().min(4).max(100),
+  type: z.enum(slopTypeIds),
+  moderation_flag: z.boolean(),
+  moderation_reason: z.string().nullable(),
+});
+
+export type AiSlopMetadata = z.infer<typeof aiSlopMetadataSchema>;
+
+export function parseAiMetadataText(text: string): AiSlopMetadata {
+  const jsonMatch = text.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) {
+    throw new Error("Claude response did not contain JSON.");
+  }
+
+  return aiSlopMetadataSchema.parse(JSON.parse(jsonMatch[0]));
+}
+
+export function fallbackMetadataForUrl(url: string): AiSlopMetadata {
+  const hostname = new URL(url).hostname.replace(/^www\./, "");
+  return {
+    tagline: `A suspiciously shipped AI thing from ${hostname}`,
+    type: "demo",
+    moderation_flag: false,
+    moderation_reason: null,
+  };
+}
