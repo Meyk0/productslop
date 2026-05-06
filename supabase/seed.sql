@@ -10,6 +10,26 @@ with seeded_slops(
 ) as (
   values
     (
+      '00000000-0000-4000-8000-000000000007'::uuid,
+      'standup-arcade-order-picker',
+      'https://www.standuparca.de',
+      'Standup Arcade',
+      'A retro slot machine that picks standup order before the meeting stalls',
+      'game',
+      '@meyk0',
+      now() - interval '30 minutes'
+    ),
+    (
+      '00000000-0000-4000-8000-000000000008'::uuid,
+      'evalarena-llm-evals',
+      'https://evalarena.xyz',
+      'EvalArena',
+      'Practice LLM evals with real-world challenges and hidden tests',
+      'tool',
+      '@meyk0',
+      now() - interval '45 minutes'
+    ),
+    (
       '00000000-0000-4000-8000-000000000001'::uuid,
       'kanwas-open-source-brain',
       'https://example.com/kanwas',
@@ -107,6 +127,14 @@ upserted_slops as (
 ),
 reaction_seed(slug, reaction_type, reaction_count) as (
   values
+    ('standup-arcade-order-picker', 'one-shotted', 102),
+    ('standup-arcade-order-picker', 'peak-slop', 96),
+    ('standup-arcade-order-picker', 'tokens-well-spent', 94),
+    ('standup-arcade-order-picker', 'load-bearing', 70),
+    ('evalarena-llm-evals', 'tokens-well-spent', 128),
+    ('evalarena-llm-evals', 'one-shotted', 77),
+    ('evalarena-llm-evals', 'peak-slop', 77),
+    ('evalarena-llm-evals', 'load-bearing', 62),
     ('kanwas-open-source-brain', 'peak-slop', 84),
     ('kanwas-open-source-brain', 'tokens-well-spent', 122),
     ('kanwas-open-source-brain', 'load-bearing', 39),

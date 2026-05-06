@@ -11,6 +11,42 @@ function hoursAgo(hours: number): string {
 
 export const seedSlops: Slop[] = [
   {
+    id: "seed-standup-arcade",
+    slug: "standup-arcade-order-picker",
+    url: "https://www.standuparca.de",
+    title: "Standup Arcade",
+    tagline: "A retro slot machine that picks standup order before the meeting stalls",
+    type: "game",
+    slopperHandle: "@meyk0",
+    reslopUsed: false,
+    founding: true,
+    createdAt: hoursAgo(0.5),
+    reactionCounts: counts({
+      "one-shotted": 102,
+      "peak-slop": 96,
+      "tokens-well-spent": 94,
+      "load-bearing": 70,
+    }),
+  },
+  {
+    id: "seed-evalarena",
+    slug: "evalarena-llm-evals",
+    url: "https://evalarena.xyz",
+    title: "EvalArena",
+    tagline: "Practice LLM evals with real-world challenges and hidden tests",
+    type: "tool",
+    slopperHandle: "@meyk0",
+    reslopUsed: false,
+    founding: true,
+    createdAt: hoursAgo(0.75),
+    reactionCounts: counts({
+      "tokens-well-spent": 128,
+      "one-shotted": 77,
+      "peak-slop": 77,
+      "load-bearing": 62,
+    }),
+  },
+  {
     id: "seed-kanwas",
     slug: "kanwas-open-source-brain",
     url: "https://example.com/kanwas",

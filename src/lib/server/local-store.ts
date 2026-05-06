@@ -176,23 +176,51 @@ async function readLocalStore(): Promise<LocalStore> {
   try {
     const raw = await readFile(storePath, "utf8");
     const parsed = JSON.parse(raw) as Partial<LocalStore>;
-    return {
+    return mergeMissingSeedSlops({
       slops: normalizeSlops(parsed.slops),
       reactionLedger: Array.isArray(parsed.reactionLedger) ? parsed.reactionLedger : [],
       slopOfTheDay: normalizeSlopOfTheDay(parsed.slopOfTheDay),
-    };
+    });
   } catch {
     const initialStore = {
-      slops: seedSlops.map((slop) => ({
-        ...slop,
-        reactionCounts: { ...slop.reactionCounts },
-      })),
+      slops: seedSlops.map(cloneSeedSlop),
       reactionLedger: [],
       slopOfTheDay: [],
     };
     await tryWriteInitialStore(initialStore);
     return initialStore;
   }
+}
+
+async function mergeMissingSeedSlops(store: LocalStore): Promise<LocalStore> {
+  const existingSlugs = new Set(store.slops.map((slop) => slop.slug));
+  const missingSeeds = seedSlops
+    .filter((slop) => !existingSlugs.has(slop.slug))
+    .map(cloneSeedSlop);
+
+  if (missingSeeds.length === 0) {
+    return store;
+  }
+
+  const mergedStore = {
+    ...store,
+    slops: [...missingSeeds, ...store.slops],
+  };
+
+  try {
+    await writeLocalStore(mergedStore);
+  } catch (error) {
+    console.warn("Unable to persist updated local Product Slop store", error);
+  }
+
+  return mergedStore;
+}
+
+function cloneSeedSlop(slop: Slop): Slop {
+  return {
+    ...slop,
+    reactionCounts: { ...slop.reactionCounts },
+  };
 }
 
 async function writeLocalStore(store: LocalStore) {
