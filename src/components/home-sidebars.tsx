@@ -1,4 +1,4 @@
-import { Clock, ShieldCheck, Sparkles, Triangle } from "lucide-react";
+import { Clock, Sparkles, Triangle } from "lucide-react";
 import Link from "next/link";
 
 export function SubmitChallenge() {
@@ -18,7 +18,6 @@ export function SubmitChallenge() {
         <SidebarPoint icon={<Sparkles className="size-4" />} text="Paste a URL and get a launch card." />
         <SidebarPoint icon={<Triangle className="size-4" />} text="Reactions decide the ranking." />
         <SidebarPoint icon={<Clock className="size-4" />} text="Daily board resets at 00:00 UTC." />
-        <SidebarPoint icon={<ShieldCheck className="size-4" />} text="No accounts required for v1." />
       </ul>
 
       <Link

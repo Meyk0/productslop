@@ -45,6 +45,10 @@ import {
 } from "@/lib/server/local-store";
 
 export type SlopOfTheDay = SlopOfTheDaySelection;
+export type CreateSlopResult = {
+  slop: Slop;
+  emailSent: boolean;
+};
 
 export async function listSlops(): Promise<Slop[]> {
   const client = getSupabaseAdminClient();
@@ -86,16 +90,24 @@ export async function getSlopByManageToken(token: string): Promise<Slop | undefi
 }
 
 export async function createSlopFromUnknown(input: unknown): Promise<Slop> {
+  return (await createSlopWithStatusFromUnknown(input)).slop;
+}
+
+export async function createSlopWithStatusFromUnknown(input: unknown): Promise<CreateSlopResult> {
   const parsed = parseSubmissionInput(input);
 
   if (!parsed.ok) {
     throw new Error(parsed.message);
   }
 
-  return createSlop(parsed.data);
+  return createSlopWithStatus(parsed.data);
 }
 
 export async function createSlop(input: SubmissionInput): Promise<Slop> {
+  return (await createSlopWithStatus(input)).slop;
+}
+
+export async function createSlopWithStatus(input: SubmissionInput): Promise<CreateSlopResult> {
   await assertSubmissionPreflight({
     url: input.url,
     email: input.email,
@@ -142,14 +154,15 @@ export async function createSlop(input: SubmissionInput): Promise<Slop> {
   };
 
   const savedSlop = client ? await insertSlopIntoSupabase(client, slop) : await insertLocalSlop(slop);
+  let emailSent = false;
 
   try {
-    await sendMagicLinkEmail(savedSlop);
+    emailSent = (await sendMagicLinkEmail(savedSlop)).sent;
   } catch (error) {
     console.error("Failed to send Product Slop magic link", error);
   }
 
-  return savedSlop;
+  return { slop: savedSlop, emailSent };
 }
 
 export async function recordReaction(params: {

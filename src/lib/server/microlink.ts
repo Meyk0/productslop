@@ -22,7 +22,6 @@ export async function fetchProjectMetadata(url: string): Promise<ProjectMetadata
   const endpoint = new URL("https://api.microlink.io/");
   endpoint.searchParams.set("url", url);
   endpoint.searchParams.set("screenshot", "true");
-  endpoint.searchParams.set("meta", "false");
   const headers = apiKey ? { "x-api-key": apiKey } : undefined;
 
   const response = await fetch(endpoint, {

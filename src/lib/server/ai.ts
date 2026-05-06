@@ -37,6 +37,8 @@ export async function generateSlopMetadata(
       "Tagline must be under 100 characters in irreverent AI weekend-project voice.",
       "Make the tagline feel like affectionate roast copy, not SaaS marketing.",
       "Use the word slop, slopped, or slop-adjacent language when it fits naturally.",
+      "Anchor the joke in the supplied title and description when they exist.",
+      "Do not write generic launch copy when the input includes concrete product details.",
       "Prefer concrete jokes about wrappers, demos, vibes, agents, screenshots, or weekend shipping.",
       "Types: wrapper, tool, game, cursed, useless, demo.",
       "Set moderation_flag true for NSFW, hateful, scammy, phishing, malware, or rights-violating content.",

@@ -12,9 +12,9 @@ export function SiteFooter() {
           <Link href="/about" className="hover:text-foreground">
             About
           </Link>
-          <a href="mailto:takedown@productslop.com" className="hover:text-foreground">
-            Contact
-          </a>
+          <Link href="/submit" className="hover:text-foreground">
+            Submit
+          </Link>
         </nav>
       </div>
     </footer>

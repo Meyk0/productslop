@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import type { CSSProperties } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { requestTurnstileToken } from "@/lib/client/turnstile";
 import {
   REACTION_TYPES,
@@ -8,6 +9,16 @@ import {
   type ReactionCounts,
   type Slop,
 } from "@/lib/domain/slop";
+
+type ConfettiStyle = CSSProperties & {
+  "--confetti-x": string;
+  "--confetti-y": string;
+  "--confetti-rotation": string;
+  "--confetti-color": string;
+  "--confetti-delay": string;
+};
+
+const confettiColors = ["#da552f", "#1f2430", "#16a34a", "#f59e0b", "#2563eb", "#e11d48"];
 
 export function ReactionMenu({
   slop,
@@ -20,7 +31,18 @@ export function ReactionMenu({
   const [used, setUsed] = useState<Set<string>>(() => new Set());
   const [pendingReaction, setPendingReaction] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [burst, setBurst] = useState<{ id: number } | null>(null);
+  const burstIdRef = useRef(0);
+  const burstTimerRef = useRef<number | null>(null);
   const total = useMemo(() => totalReactions({ reactionCounts: counts }), [counts]);
+
+  useEffect(() => {
+    return () => {
+      if (burstTimerRef.current) {
+        window.clearTimeout(burstTimerRef.current);
+      }
+    };
+  }, []);
 
   async function react(reactionType: string) {
     if (used.has(reactionType) || pendingReaction) {
@@ -52,6 +74,15 @@ export function ReactionMenu({
       }
 
       setCounts(data.counts);
+      const burstId = burstIdRef.current + 1;
+      burstIdRef.current = burstId;
+      setBurst({ id: burstId });
+      if (burstTimerRef.current) {
+        window.clearTimeout(burstTimerRef.current);
+      }
+      burstTimerRef.current = window.setTimeout(() => {
+        setBurst((current) => (current?.id === burstId ? null : current));
+      }, 950);
     } catch (caught) {
       setUsed((current) => {
         const next = new Set(current);
@@ -66,7 +97,19 @@ export function ReactionMenu({
   }
 
   return (
-    <section className="rounded-[8px] border border-line bg-panel p-4">
+    <section className="relative overflow-hidden rounded-[8px] border border-line bg-panel p-4">
+      {burst ? (
+        <div
+          key={burst.id}
+          className="pointer-events-none absolute inset-0 z-10 overflow-hidden"
+          aria-hidden="true"
+        >
+          {Array.from({ length: 22 }, (_, index) => (
+            <span key={index} className="confetti-bit" style={confettiStyle(index)} />
+          ))}
+        </div>
+      ) : null}
+
       <div className="flex items-center justify-between gap-4">
         <div>
           <p className="font-mono text-xs font-black uppercase text-slop-orange">
@@ -117,4 +160,17 @@ export function ReactionMenu({
       </div>
     </section>
   );
+}
+
+function confettiStyle(index: number): ConfettiStyle {
+  const angle = (index / 22) * Math.PI * 2;
+  const distance = 72 + (index % 5) * 18;
+
+  return {
+    "--confetti-x": `${Math.cos(angle) * distance}px`,
+    "--confetti-y": `${Math.sin(angle) * distance - 24}px`,
+    "--confetti-rotation": `${index * 43}deg`,
+    "--confetti-color": confettiColors[index % confettiColors.length],
+    "--confetti-delay": `${(index % 4) * 24}ms`,
+  };
 }

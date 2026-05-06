@@ -44,7 +44,7 @@ The app builds without keys by using local fallbacks, but production submissions
 - OpenAI key for structured metadata generation (`OPENAI_MODEL` defaults to `gpt-5.4-mini`)
 - Microlink free endpoint for OG metadata and screenshots (`MICROLINK_API_KEY` is optional unless we upgrade to Pro)
 - Cloudflare Turnstile keys
-- Resend key and verified sender
+- Resend key, verified `RESEND_FROM`, and `NEXT_PUBLIC_SITE_URL` for manage-link emails
 - Google Safe Browsing key
 - Optional `ADMIN_DELETE_TOKEN` for guarded admin deletes at `/p/[slug]?admin=...`
 

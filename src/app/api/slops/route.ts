@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { checkSubmissionRateLimit, verifyTurnstileToken } from "@/lib/server/abuse";
 import { getClientIp } from "@/lib/server/request";
-import { createSlopFromUnknown } from "@/lib/server/slop-service";
+import { createSlopWithStatusFromUnknown } from "@/lib/server/slop-service";
 
 export async function POST(request: NextRequest) {
   try {
@@ -24,8 +24,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: turnstile.message }, { status: 403 });
     }
 
-    const slop = await createSlopFromUnknown(body);
-    return NextResponse.json({ slop }, { status: 201 });
+    const result = await createSlopWithStatusFromUnknown(body);
+    return NextResponse.json(result, { status: 201 });
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Unable to submit slop." },

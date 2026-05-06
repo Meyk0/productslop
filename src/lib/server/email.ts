@@ -9,15 +9,16 @@ export async function sendMagicLinkEmail(slop: Slop): Promise<{ sent: boolean }>
   }
 
   const resend = getResendClient();
-  if (!resend) {
+  const from = process.env.RESEND_FROM?.trim();
+  if (!resend || !from) {
     return { sent: false };
   }
 
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+  const siteUrl = resolveSiteUrl();
   const manageUrl = new URL(`/manage/${slop.manageToken}`, siteUrl);
 
   await resend.emails.send({
-    from: process.env.RESEND_FROM ?? "Product Slop <launch@productslop.com>",
+    from,
     to: slop.email,
     subject: `Manage ${slop.title} on Product Slop`,
     text: [
@@ -28,4 +29,27 @@ export async function sendMagicLinkEmail(slop: Slop): Promise<{ sent: boolean }>
   });
 
   return { sent: true };
+}
+
+function resolveSiteUrl(): string {
+  const explicit = process.env.NEXT_PUBLIC_SITE_URL?.trim();
+  if (explicit) {
+    return withProtocol(explicit);
+  }
+
+  const productionUrl = process.env.VERCEL_PROJECT_PRODUCTION_URL?.trim();
+  if (productionUrl) {
+    return withProtocol(productionUrl);
+  }
+
+  const deploymentUrl = process.env.VERCEL_URL?.trim();
+  if (deploymentUrl) {
+    return withProtocol(deploymentUrl);
+  }
+
+  return "http://localhost:3000";
+}
+
+function withProtocol(url: string): string {
+  return /^https?:\/\//i.test(url) ? url : `https://${url}`;
 }
