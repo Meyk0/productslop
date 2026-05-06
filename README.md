@@ -42,7 +42,7 @@ The app builds without keys by using local fallbacks, but production submissions
 
 - Supabase URL and service-role key
 - OpenAI key for structured metadata generation (`OPENAI_MODEL` defaults to `gpt-5.4-mini`)
-- Microlink key for OG metadata and screenshots
+- Microlink free endpoint for OG metadata and screenshots (`MICROLINK_API_KEY` is optional unless we upgrade to Pro)
 - Cloudflare Turnstile keys
 - Resend key and verified sender
 - Google Safe Browsing key

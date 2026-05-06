@@ -17,20 +17,16 @@ type MicrolinkResponse = {
 };
 
 export async function fetchProjectMetadata(url: string): Promise<ProjectMetadata> {
-  const apiKey = process.env.MICROLINK_API_KEY;
-  if (!apiKey) {
-    return {};
-  }
+  const apiKey = process.env.MICROLINK_API_KEY?.trim();
 
   const endpoint = new URL("https://api.microlink.io/");
   endpoint.searchParams.set("url", url);
   endpoint.searchParams.set("screenshot", "true");
   endpoint.searchParams.set("meta", "false");
+  const headers = apiKey ? { "x-api-key": apiKey } : undefined;
 
   const response = await fetch(endpoint, {
-    headers: {
-      "x-api-key": apiKey,
-    },
+    headers,
   });
 
   if (!response.ok) {
