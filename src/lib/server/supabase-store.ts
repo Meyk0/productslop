@@ -10,6 +10,12 @@ import {
   type SlopRow,
 } from "@/lib/server/supabase-mappers";
 
+export type StoredSlopOfTheDay = {
+  date: string;
+  slop: Slop;
+  totalReactions: number;
+};
+
 export async function listSlopsFromSupabase(client: SupabaseClient): Promise<Slop[]> {
   const { data: rows, error } = await client
     .from("slop")
@@ -177,6 +183,65 @@ export async function softDeleteSlopInSupabase(
   return Boolean(data);
 }
 
+export async function listSlopOfTheDayFromSupabase(
+  client: SupabaseClient,
+): Promise<StoredSlopOfTheDay[]> {
+  const { data: rows, error } = await client
+    .from("slop_of_the_day")
+    .select("date,total_reactions,slop(*)")
+    .order("date", { ascending: false });
+
+  if (error) {
+    throw error;
+  }
+
+  const winnerRows = (rows ?? []) as unknown as Array<{
+    date: string;
+    total_reactions: number;
+    slop: SlopRow | SlopRow[] | null;
+  }>;
+  const slopRows = winnerRows.flatMap((row) => {
+    const slop = normalizeJoinedSlop(row.slop);
+    return slop ? [slop] : [];
+  });
+  const reactionRows = await listReactionRows(client, slopRows.map((row) => row.id));
+
+  return winnerRows.flatMap((row) => {
+    const slop = normalizeJoinedSlop(row.slop);
+    if (!slop || slop.deleted_at) {
+      return [];
+    }
+
+    return [
+      {
+        date: row.date,
+        slop: toSlop(slop, reactionRows),
+        totalReactions: row.total_reactions,
+      },
+    ];
+  });
+}
+
+export async function upsertSlopOfTheDayInSupabase(
+  client: SupabaseClient,
+  winner: StoredSlopOfTheDay,
+): Promise<StoredSlopOfTheDay> {
+  const { error } = await client.from("slop_of_the_day").upsert(
+    {
+      date: winner.date,
+      slop_id: winner.slop.id,
+      total_reactions: winner.totalReactions,
+    },
+    { onConflict: "date" },
+  );
+
+  if (error) {
+    throw error;
+  }
+
+  return winner;
+}
+
 async function listReactionRows(
   client: SupabaseClient,
   slopIds: string[],
@@ -195,4 +260,8 @@ async function listReactionRows(
   }
 
   return (data ?? []) as ReactionRow[];
+}
+
+function normalizeJoinedSlop(slop: SlopRow | SlopRow[] | null): SlopRow | null {
+  return Array.isArray(slop) ? (slop[0] ?? null) : slop;
 }

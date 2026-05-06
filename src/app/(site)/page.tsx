@@ -1,9 +1,10 @@
+import Link from "next/link";
 import { HomeWelcome } from "@/app/(site)/welcome";
 import { SubmitChallenge, TrendingThreads } from "@/components/home-sidebars";
 import { PeriodTabs } from "@/components/period-tabs";
 import { SlopFeed } from "@/components/slop-feed";
 import { parseFeedWindow, rankSlops } from "@/lib/domain/ranking";
-import { listSlops } from "@/lib/server/slop-service";
+import { getLatestSlopOfTheDay, listSlops } from "@/lib/server/slop-service";
 
 type HomeProps = {
   searchParams: Promise<{ deleted?: string; period?: string | string[] }>;
@@ -12,7 +13,8 @@ type HomeProps = {
 export default async function Home({ searchParams }: HomeProps) {
   const params = await searchParams;
   const activeWindow = parseFeedWindow(params.period);
-  const slops = rankSlops(await listSlops(), activeWindow);
+  const [allSlops, slopOfTheDay] = await Promise.all([listSlops(), getLatestSlopOfTheDay()]);
+  const slops = rankSlops(allSlops, activeWindow);
 
   return (
     <div className="noise">
@@ -26,6 +28,26 @@ export default async function Home({ searchParams }: HomeProps) {
             ) : null}
 
             <HomeWelcome />
+
+            {slopOfTheDay ? (
+              <Link
+                href={`/p/${slopOfTheDay.slop.slug}`}
+                className="mt-8 block rounded-[8px] border border-slop-orange/30 bg-white p-4 transition hover:-translate-y-0.5 hover:border-slop-orange hover:shadow-sm"
+              >
+                <p className="font-mono text-xs font-black uppercase text-slop-orange">
+                  Slop of the Day · {slopOfTheDay.date}
+                </p>
+                <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <h2 className="text-2xl font-black">{slopOfTheDay.slop.title}</h2>
+                    <p className="mt-1 text-muted">{slopOfTheDay.slop.tagline}</p>
+                  </div>
+                  <span className="rounded-full bg-slop-cream px-4 py-2 font-mono text-sm font-black text-slop-orange">
+                    {slopOfTheDay.totalReactions}
+                  </span>
+                </div>
+              </Link>
+            ) : null}
 
             <section className="mt-16">
               <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
