@@ -185,6 +185,25 @@ export async function softDeleteSlopInSupabase(
   return Boolean(data);
 }
 
+export async function softDeleteSlopBySlugInSupabase(
+  client: SupabaseClient,
+  slug: string,
+): Promise<boolean> {
+  const { data, error } = await client
+    .from("slop")
+    .update({ deleted_at: new Date().toISOString() })
+    .eq("slug", slug)
+    .is("deleted_at", null)
+    .select("id")
+    .maybeSingle();
+
+  if (error) {
+    throw error;
+  }
+
+  return Boolean(data);
+}
+
 export async function listSlopOfTheDayFromSupabase(
   client: SupabaseClient,
 ): Promise<StoredSlopOfTheDay[]> {

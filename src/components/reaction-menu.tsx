@@ -69,10 +69,16 @@ export function ReactionMenu({
     <section className="rounded-[8px] border border-line bg-panel p-4">
       <div className="flex items-center justify-between gap-4">
         <div>
-          <h2 className="text-lg font-black">Reaction menu</h2>
-          <p className="text-sm text-muted">Session-limited to one tap per reaction.</p>
+          <p className="font-mono text-xs font-black uppercase text-slop-orange">
+            Slop reactor
+          </p>
+          <h2 className="mt-1 text-xl font-black">Tap the chaos meter</h2>
+          <p className="text-sm text-muted">
+            One tap per reaction. Multiple bad opinions encouraged.
+          </p>
         </div>
-        <div className="rounded-full bg-slop-cream px-4 py-2 font-mono text-sm font-black text-slop-orange">
+        <div className="rounded-[8px] bg-slop-cream px-4 py-2 text-center font-mono text-sm font-black text-slop-orange">
+          <span className="block text-[10px] uppercase tracking-normal">chaos</span>
           {total}
         </div>
       </div>
@@ -94,16 +100,16 @@ export function ReactionMenu({
               type="button"
               onClick={() => react(reaction.id)}
               disabled={alreadyUsed || Boolean(pendingReaction)}
-              className="group min-h-16 rounded-[8px] border border-line bg-white px-4 py-3 text-left transition enabled:hover:-translate-y-0.5 enabled:hover:border-slop-orange enabled:hover:shadow-sm disabled:bg-slate-50"
+              className="group min-h-20 rounded-[8px] border border-line bg-white px-4 py-3 text-left transition enabled:hover:-translate-y-0.5 enabled:hover:border-slop-orange enabled:hover:bg-slop-cream enabled:hover:shadow-sm disabled:bg-slate-50"
             >
               <span className="flex items-center justify-between gap-3">
                 <span className="font-bold text-foreground">{reaction.label}</span>
-                <span className="font-mono text-sm font-bold text-muted">
+                <span className="rounded-full bg-slate-100 px-2 py-1 font-mono text-xs font-black text-muted">
                   {counts[reaction.id]}
                 </span>
               </span>
               <span className="mt-1 block text-xs leading-5 text-muted">
-                {isWorking ? "checking..." : reaction.vibe}
+                {alreadyUsed ? "logged in the slop ledger" : isWorking ? "consulting the vibe desk..." : reaction.vibe}
               </span>
             </button>
           );

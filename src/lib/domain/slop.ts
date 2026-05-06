@@ -1,27 +1,27 @@
 export const REACTION_TYPES = [
-  { id: "peak-slop", label: "Peak Slop", vibe: "Highest meta-praise" },
+  { id: "peak-slop", label: "Peak Slop", vibe: "This is the summit of shipped nonsense" },
   {
     id: "em-dash-deluxe",
     label: "Em Dash Deluxe",
-    vibe: "Clearly AI-written, and somehow lovable",
+    vibe: "The model added punctuation and a little too much confidence",
   },
   {
     id: "tokens-well-spent",
     label: "Tokens Well Spent",
-    vibe: "Sincere praise for a worthy build",
+    vibe: "A rare case where the GPU bill can hold its head high",
   },
-  { id: "absolutely", label: "Absolutely!", vibe: "AI's enthusiasm tic, reclaimed" },
+  { id: "absolutely", label: "Absolutely Unhinged", vibe: "The pitch deck wrote itself at 2am" },
   {
     id: "load-bearing",
-    label: "Load-Bearing",
-    vibe: "One strange thing holds it together",
+    label: "Load-Bearing Screenshot",
+    vibe: "One heroic screenshot is holding the whole product together",
   },
   {
     id: "one-shotted",
-    label: "One-Shotted",
-    vibe: "Built in one glorious model session",
+    label: "One-Shot Miracle",
+    vibe: "No refactor, no plan, just vibes and a green deploy",
   },
-  { id: "delve", label: "Delve", vibe: "The prose got a little too generated" },
+  { id: "delve", label: "Delve Detected", vibe: "The copy got caught wearing an AI mustache" },
 ] as const;
 
 export type ReactionType = (typeof REACTION_TYPES)[number]["id"];

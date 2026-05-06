@@ -165,8 +165,8 @@ describe("local store", () => {
       expect(slops).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
-            slug: "kanwas-open-source-brain",
-            title: "Kanwas",
+            slug: "standup-arcade-order-picker",
+            title: "Standup Arcade",
           }),
         ]),
       );

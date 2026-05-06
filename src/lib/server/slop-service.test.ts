@@ -27,6 +27,7 @@ vi.mock("@/lib/server/supabase-store", () => ({
   listSlopOfTheDayFromSupabase: vi.fn(),
   listSlopsFromSupabase: vi.fn(),
   reslopSlopInSupabase: vi.fn(),
+  softDeleteSlopBySlugInSupabase: vi.fn(),
   softDeleteSlopInSupabase: vi.fn(),
   updateSlopTaglineInSupabase: vi.fn(),
   upsertSlopOfTheDayInSupabase: vi.fn(),
@@ -40,6 +41,7 @@ vi.mock("@/lib/server/local-store", () => ({
   listLocalSlopOfTheDay: vi.fn(),
   listLocalSlops: vi.fn(),
   reslopLocalSlop: vi.fn(),
+  softDeleteLocalSlopBySlug: vi.fn(),
   softDeleteLocalSlop: vi.fn(),
   updateLocalSlopTagline: vi.fn(),
   upsertLocalSlopOfTheDay: vi.fn(),
@@ -69,7 +71,7 @@ describe("slop service read fallbacks", () => {
     listSlopsFromSupabaseMock.mockRejectedValue(new Error("Invalid API key"));
     listLocalSlopsMock.mockResolvedValue(slops);
 
-    await expect(listSlops()).resolves.toBe(slops);
+    await expect(listSlops()).resolves.toEqual(slops);
     expect(listLocalSlopsMock).toHaveBeenCalled();
   });
 

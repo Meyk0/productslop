@@ -2,6 +2,7 @@ import "server-only";
 
 import { randomUUID } from "node:crypto";
 import { nanoid } from "nanoid";
+import { retiredSeedSlugs } from "@/lib/data/mock-slops";
 import type { ReactionCounts, Slop } from "@/lib/domain/slop";
 import { createEmptyReactionCounts, createSlug } from "@/lib/domain/slop";
 import {
@@ -23,6 +24,7 @@ import {
   insertSlopIntoSupabase,
   listSlopOfTheDayFromSupabase,
   listSlopsFromSupabase,
+  softDeleteSlopBySlugInSupabase,
   reslopSlopInSupabase,
   softDeleteSlopInSupabase,
   updateSlopTaglineInSupabase,
@@ -36,6 +38,7 @@ import {
   listLocalSlopOfTheDay,
   listLocalSlops,
   reslopLocalSlop,
+  softDeleteLocalSlopBySlug,
   softDeleteLocalSlop,
   updateLocalSlopTagline,
   upsertLocalSlopOfTheDay,
@@ -47,13 +50,13 @@ export async function listSlops(): Promise<Slop[]> {
   const client = getSupabaseAdminClient();
   if (client) {
     try {
-      return await listSlopsFromSupabase(client);
+      return filterPublicSlops(await listSlopsFromSupabase(client));
     } catch (error) {
       logSupabaseReadFallback("list slops", error);
     }
   }
 
-  return listLocalSlops();
+  return filterPublicSlops(await listLocalSlops());
 }
 
 export async function getSlopBySlug(slug: string): Promise<Slop | undefined> {
@@ -187,13 +190,13 @@ export async function listSlopOfTheDayWinners(): Promise<SlopOfTheDay[]> {
   const client = getSupabaseAdminClient();
   if (client) {
     try {
-      return await listSlopOfTheDayFromSupabase(client);
+      return filterPublicWinners(await listSlopOfTheDayFromSupabase(client));
     } catch (error) {
       logSupabaseReadFallback("list slop of the day winners", error);
     }
   }
 
-  return listLocalSlopOfTheDay();
+  return filterPublicWinners(await listLocalSlopOfTheDay());
 }
 
 export async function getLatestSlopOfTheDay(): Promise<SlopOfTheDay | undefined> {
@@ -266,6 +269,23 @@ export async function deleteSlopByToken(token: string): Promise<void> {
   }
 }
 
+export async function deleteSlopBySlugAsAdmin(slug: string): Promise<void> {
+  const client = getSupabaseAdminClient();
+  if (client) {
+    const deleted = await softDeleteSlopBySlugInSupabase(client, slug);
+    if (!deleted) {
+      throw new Error("Slop not found.");
+    }
+
+    return;
+  }
+
+  const deleted = await softDeleteLocalSlopBySlug(slug);
+  if (!deleted) {
+    throw new Error("Slop not found.");
+  }
+}
+
 export async function reslopByToken(token: string, expectedSlug?: string): Promise<Slop> {
   const slop = await getSlopByManageToken(token);
   if (!slop) {
@@ -314,4 +334,12 @@ export function titleFromHostname(hostname: string): string {
 
 function logSupabaseReadFallback(operation: string, error: unknown) {
   console.error(`Supabase ${operation} failed; using local fallback`, error);
+}
+
+function filterPublicSlops(slops: Slop[]): Slop[] {
+  return slops.filter((slop) => !retiredSeedSlugs.has(slop.slug));
+}
+
+function filterPublicWinners(winners: SlopOfTheDay[]): SlopOfTheDay[] {
+  return winners.filter((winner) => !retiredSeedSlugs.has(winner.slop.slug));
 }
