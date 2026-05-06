@@ -51,6 +51,30 @@ export async function getSlopBySlugFromSupabase(
   return toSlop(slopRow, reactionRows);
 }
 
+export async function getSlopByManageTokenFromSupabase(
+  client: SupabaseClient,
+  token: string,
+): Promise<Slop | undefined> {
+  const { data: row, error } = await client
+    .from("slop")
+    .select("*")
+    .eq("manage_token", token)
+    .is("deleted_at", null)
+    .maybeSingle();
+
+  if (error) {
+    throw error;
+  }
+
+  if (!row) {
+    return undefined;
+  }
+
+  const slopRow = row as SlopRow;
+  const reactionRows = await listReactionRows(client, [slopRow.id]);
+  return toSlop(slopRow, reactionRows);
+}
+
 export async function insertSlopIntoSupabase(
   client: SupabaseClient,
   slop: Slop,
@@ -93,6 +117,44 @@ export async function insertReactionIntoSupabase(
     changed: !error,
     counts: countReactions(params.slopId, reactionRows),
   };
+}
+
+export async function updateSlopTaglineInSupabase(
+  client: SupabaseClient,
+  params: { token: string; tagline: string },
+): Promise<Slop | undefined> {
+  const { data: row, error } = await client
+    .from("slop")
+    .update({ tagline: params.tagline })
+    .eq("manage_token", params.token)
+    .is("deleted_at", null)
+    .select("*")
+    .maybeSingle();
+
+  if (error) {
+    throw error;
+  }
+
+  return row ? toSlop(row as SlopRow) : undefined;
+}
+
+export async function softDeleteSlopInSupabase(
+  client: SupabaseClient,
+  token: string,
+): Promise<boolean> {
+  const { data, error } = await client
+    .from("slop")
+    .update({ deleted_at: new Date().toISOString() })
+    .eq("manage_token", token)
+    .is("deleted_at", null)
+    .select("id")
+    .maybeSingle();
+
+  if (error) {
+    throw error;
+  }
+
+  return Boolean(data);
 }
 
 async function listReactionRows(
