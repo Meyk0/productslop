@@ -1,11 +1,11 @@
 # Product Slop
 
-The front page of AI slop: a Product Hunt parody for AI weekend projects.
+The front page of AI slop: a lightweight launch board for weekend projects.
 
 ## Current slice
 
 - Next.js App Router with TypeScript and Tailwind
-- Product Hunt-inspired homepage, detail page, submit flow, Hall of Slop, About, Legal, and magic-link manage flow
+- Homepage, real search, detail page, submit flow, Hall of Slop, FAQ, About, and magic-link manage flow
 - Locked reaction/type vocabulary in domain code
 - File-backed local slop/reaction store for development before Supabase keys exist
 - OpenAI metadata adapter with safe fallback when `OPENAI_API_KEY` is missing

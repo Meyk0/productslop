@@ -107,7 +107,7 @@ export function SubmitForm({ turnstileSiteKey }: { turnstileSiteKey?: string }) 
   return (
     <div className="grid gap-8 lg:grid-cols-[minmax(0,0.9fr)_minmax(340px,1fr)]">
       <form onSubmit={submit} className="rounded-[8px] border border-line bg-white p-5 sm:p-6">
-        <input type="hidden" name="startedAt" value={startedAt} />
+        <input type="hidden" name="startedAt" value={String(startedAt)} />
         <input
           aria-hidden="true"
           tabIndex={-1}

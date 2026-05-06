@@ -1,10 +1,12 @@
-import { MessageCircle, Tags, Triangle } from "lucide-react";
+import { Tags, Triangle } from "lucide-react";
 import Link from "next/link";
 import { SlopArt } from "@/components/slop-art";
 import { TypeBadge } from "@/components/type-badge";
 import { topReaction, totalReactions, type Slop } from "@/lib/domain/slop";
 
 export function SlopRow({ slop, rank }: { slop: Slop; rank: number }) {
+  const reactionTotal = totalReactions(slop);
+
   return (
     <Link
       href={`/p/${slop.slug}`}
@@ -33,8 +35,7 @@ export function SlopRow({ slop, rank }: { slop: Slop; rank: number }) {
         </div>
       </div>
       <div className="hidden items-center gap-3 sm:flex">
-        <Metric icon={<MessageCircle className="size-4" />} value={Math.ceil(totalReactions(slop) / 3)} />
-        <Metric icon={<Triangle className="size-4" />} value={totalReactions(slop)} />
+        <Metric icon={<Triangle className="size-4" />} value={reactionTotal} />
       </div>
     </Link>
   );

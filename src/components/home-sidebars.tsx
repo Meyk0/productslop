@@ -1,4 +1,4 @@
-import { MessageCircle, Triangle } from "lucide-react";
+import { Clock, ShieldCheck, Sparkles, Triangle } from "lucide-react";
 import Link from "next/link";
 
 export function SubmitChallenge() {
@@ -9,20 +9,17 @@ export function SubmitChallenge() {
           S
         </div>
         <div>
-          <h2 className="text-xl font-black">Slop Application Day</h2>
-          <p className="text-muted">By the weekend build committee</p>
+          <h2 className="text-xl font-black">Launch today</h2>
+          <p className="text-muted">A tiny launch board for AI side projects</p>
         </div>
       </div>
 
-      <div className="mt-6 space-y-4 text-base">
-        <p className="rounded-[8px] border border-line bg-white p-4 font-semibold leading-7">
-          Launch to win absolutely nothing except a suspicious amount of validation.
-        </p>
-        <p className="rounded-[8px] border border-line bg-white p-4 text-muted">
-          Submissions reset at{" "}
-          <span className="font-mono font-black text-foreground">00:00 UTC</span>.
-        </p>
-      </div>
+      <ul className="mt-6 space-y-3 text-sm text-muted">
+        <SidebarPoint icon={<Sparkles className="size-4" />} text="Paste a URL and get a launch card." />
+        <SidebarPoint icon={<Triangle className="size-4" />} text="Reactions decide the ranking." />
+        <SidebarPoint icon={<Clock className="size-4" />} text="Daily board resets at 00:00 UTC." />
+        <SidebarPoint icon={<ShieldCheck className="size-4" />} text="No accounts required for v1." />
+      </ul>
 
       <Link
         href="/submit"
@@ -34,44 +31,11 @@ export function SubmitChallenge() {
   );
 }
 
-export function TrendingThreads() {
+function SidebarPoint({ icon, text }: { icon: React.ReactNode; text: string }) {
   return (
-    <aside className="pt-4">
-      <h2 className="text-xl font-black">Trending Forum Threads</h2>
-      <div className="mt-8 space-y-8">
-        <Thread
-          channel="p/productslop"
-          title="Missed the YC deadline? Ship slop anyway"
-          stats="Upvote (192) / 19 replies / 21 online"
-        />
-        <Thread
-          channel="p/general"
-          title="How do you decide what features the model definitely invented?"
-          stats="Upvote (88) / 11 replies / 9 online"
-        />
-      </div>
-    </aside>
-  );
-}
-
-function Thread({
-  channel,
-  title,
-  stats,
-}: {
-  channel: string;
-  title: string;
-  stats: string;
-}) {
-  return (
-    <div>
-      <p className="font-bold text-muted">{channel}</p>
-      <h3 className="mt-2 text-lg font-black leading-snug">{title}</h3>
-      <p className="mt-2 flex flex-wrap items-center gap-2 text-sm text-muted">
-        <Triangle className="size-4" />
-        {stats}
-        <MessageCircle className="size-4" />
-      </p>
-    </div>
+    <li className="flex gap-2 leading-6">
+      <span className="mt-1 text-slop-orange">{icon}</span>
+      <span>{text}</span>
+    </li>
   );
 }

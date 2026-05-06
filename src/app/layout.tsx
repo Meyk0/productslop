@@ -19,6 +19,9 @@ export const metadata: Metadata = {
     template: "%s | Product Slop",
   },
   description: "The front page of AI slop.",
+  icons: {
+    icon: [{ url: "/icon.svg", type: "image/svg+xml" }],
+  },
   openGraph: {
     title: "Product Slop",
     description: "The front page of AI slop.",
