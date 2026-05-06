@@ -5,7 +5,7 @@ import path from "node:path";
 import type { ReactionCounts, Slop } from "@/lib/domain/slop";
 import { createEmptyReactionCounts, isReactionType } from "@/lib/domain/slop";
 import { applyReaction, reactionLedgerKey } from "@/lib/domain/reactions";
-import { seedSlops } from "@/lib/data/mock-slops";
+import { retiredSeedSlugs, seedSlops } from "@/lib/data/mock-slops";
 
 export type StoredSlopOfTheDay = {
   date: string;
@@ -86,6 +86,19 @@ export async function reslopLocalSlop(
 export async function softDeleteLocalSlop(token: string): Promise<boolean> {
   const store = await readLocalStore();
   const slop = store.slops.find((candidate) => candidate.manageToken === token && !candidate.deletedAt);
+
+  if (!slop) {
+    return false;
+  }
+
+  slop.deletedAt = new Date().toISOString();
+  await writeLocalStore(store);
+  return true;
+}
+
+export async function softDeleteLocalSlopBySlug(slug: string): Promise<boolean> {
+  const store = await readLocalStore();
+  const slop = store.slops.find((candidate) => candidate.slug === slug && !candidate.deletedAt);
 
   if (!slop) {
     return false;
@@ -177,7 +190,7 @@ async function readLocalStore(): Promise<LocalStore> {
     const raw = await readFile(storePath, "utf8");
     const parsed = JSON.parse(raw) as Partial<LocalStore>;
     return mergeMissingSeedSlops({
-      slops: normalizeSlops(parsed.slops),
+      slops: normalizeSlops(parsed.slops).filter((slop) => !retiredSeedSlugs.has(slop.slug)),
       reactionLedger: Array.isArray(parsed.reactionLedger) ? parsed.reactionLedger : [],
       slopOfTheDay: normalizeSlopOfTheDay(parsed.slopOfTheDay),
     });

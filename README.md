@@ -46,6 +46,7 @@ The app builds without keys by using local fallbacks, but production submissions
 - Cloudflare Turnstile keys
 - Resend key and verified sender
 - Google Safe Browsing key
+- Optional `ADMIN_DELETE_TOKEN` for guarded admin deletes at `/p/[slug]?admin=...`
 
 ## Production Data
 

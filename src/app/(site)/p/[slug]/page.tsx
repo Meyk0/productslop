@@ -1,13 +1,16 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { adminDeleteSlopAction } from "@/app/(site)/p/[slug]/actions";
 import { ReactionMenu } from "@/components/reaction-menu";
 import { SlopFeed } from "@/components/slop-feed";
 import { TradingCard } from "@/components/trading-card";
 import { rankSlops } from "@/lib/domain/ranking";
+import { canAdminDelete, normalizeAdminToken } from "@/lib/server/admin";
 import { getSlopBySlug, listSlops } from "@/lib/server/slop-service";
 
 type ProjectPageProps = {
   params: Promise<{ slug: string }>;
+  searchParams?: Promise<{ admin?: string | string[]; adminError?: string }>;
 };
 
 export async function generateMetadata({ params }: ProjectPageProps): Promise<Metadata> {
@@ -35,8 +38,11 @@ export async function generateMetadata({ params }: ProjectPageProps): Promise<Me
   };
 }
 
-export default async function ProjectPage({ params }: ProjectPageProps) {
+export default async function ProjectPage({ params, searchParams }: ProjectPageProps) {
   const { slug } = await params;
+  const query = searchParams ? await searchParams : {};
+  const adminToken = normalizeAdminToken(query.admin);
+  const isAdmin = canAdminDelete(adminToken);
   const slop = await getSlopBySlug(slug);
 
   if (!slop) {
@@ -67,6 +73,14 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
             turnstileSiteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
           />
 
+          {query.adminError ? (
+            <p className="rounded-[8px] border border-rose-200 bg-rose-50 p-3 text-sm font-bold text-rose-700">
+              {query.adminError}
+            </p>
+          ) : null}
+
+          {isAdmin && adminToken ? <AdminDeletePanel slug={slop.slug} token={adminToken} /> : null}
+
           <section>
             <div className="mb-4 flex items-center justify-between gap-4">
               <h2 className="text-2xl font-black">More slop</h2>
@@ -82,5 +96,31 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
         </div>
       </div>
     </div>
+  );
+}
+
+function AdminDeletePanel({ slug, token }: { slug: string; token: string }) {
+  const action = adminDeleteSlopAction.bind(null, slug, token);
+
+  return (
+    <section className="rounded-[8px] border border-rose-200 bg-rose-50 p-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="font-mono text-xs font-black uppercase text-rose-700">Admin</p>
+          <h2 className="mt-1 text-lg font-black text-rose-950">Delete this launch</h2>
+          <p className="text-sm leading-6 text-rose-800">
+            Soft-deletes it from public feeds and detail pages.
+          </p>
+        </div>
+        <form action={action}>
+          <button
+            type="submit"
+            className="inline-flex h-11 items-center justify-center rounded-full bg-rose-600 px-5 font-black text-white transition hover:bg-rose-700"
+          >
+            Delete
+          </button>
+        </form>
+      </div>
+    </section>
   );
 }

@@ -30,7 +30,13 @@ export default async function Home({ searchParams }: HomeProps) {
               </p>
             ) : null}
 
-            <HomeWelcome />
+            <div className="hidden sm:block">
+              <HomeWelcome />
+            </div>
+
+            <div className="mt-8 lg:hidden">
+              <SubmitChallenge />
+            </div>
 
             {slopOfTheDay ? (
               <Link
@@ -78,7 +84,7 @@ export default async function Home({ searchParams }: HomeProps) {
             </section>
           </div>
 
-          <div className="space-y-10">
+          <div className="hidden space-y-10 lg:block">
             <SubmitChallenge />
           </div>
         </div>

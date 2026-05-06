@@ -1,13 +1,27 @@
-import { Rocket, Search } from "lucide-react";
+import { Menu, Rocket, Search } from "lucide-react";
 import Link from "next/link";
 
 export function SiteHeader() {
   return (
     <header className="sticky top-0 z-20 border-b border-line bg-white/95 backdrop-blur">
       <div className="mx-auto flex h-20 max-w-7xl items-center gap-4 px-4 sm:px-6 lg:px-8">
+        <details className="group relative md:hidden">
+          <summary
+            className="grid size-11 cursor-pointer list-none place-items-center rounded-full text-muted transition hover:bg-slate-100 hover:text-foreground [&::-webkit-details-marker]:hidden"
+            aria-label="Open navigation"
+          >
+            <Menu className="size-7" />
+          </summary>
+          <nav className="absolute left-0 top-14 z-30 w-56 rounded-[8px] border border-line bg-white p-2 text-base font-bold shadow-lg">
+            <MobileLink href="/">Best Slop</MobileLink>
+            <MobileLink href="/hall-of-slop">Hall</MobileLink>
+            <MobileLink href="/faq">FAQ</MobileLink>
+          </nav>
+        </details>
+
         <Link
           href="/"
-          className="grid size-12 shrink-0 place-items-center rounded-full bg-slop-orange text-3xl font-black text-white"
+          className="grid size-12 shrink-0 place-items-center rounded-full bg-slop-orange text-3xl font-black text-white sm:size-12"
           aria-label="Product Slop home"
         >
           S
@@ -51,6 +65,14 @@ export function SiteHeader() {
 function HeaderLink({ href, children }: { href: string; children: React.ReactNode }) {
   return (
     <Link href={href} className="hover:text-slop-orange">
+      {children}
+    </Link>
+  );
+}
+
+function MobileLink({ href, children }: { href: string; children: React.ReactNode }) {
+  return (
+    <Link href={href} className="block rounded-[8px] px-3 py-2 hover:bg-slop-cream">
       {children}
     </Link>
   );
