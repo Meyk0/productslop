@@ -70,6 +70,7 @@ describe("OpenAI AI adapter", () => {
     });
     expect(parse).toHaveBeenCalledWith(
       expect.objectContaining({
+        instructions: expect.stringContaining("glorious slop"),
         model: defaultOpenAIModel,
         reasoning: { effort: "low" },
         store: false,
@@ -91,5 +92,10 @@ describe("OpenAI AI adapter", () => {
         type: "demo",
       }),
     ).resolves.toBe("Same build, slightly less cursed.");
+    expect(parse).toHaveBeenCalledWith(
+      expect.objectContaining({
+        instructions: expect.stringContaining("more slop-forward"),
+      }),
+    );
   });
 });

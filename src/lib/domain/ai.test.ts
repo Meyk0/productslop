@@ -21,10 +21,14 @@ describe("AI metadata parsing", () => {
   });
 
   it("creates a safe fallback without external keys", () => {
-    expect(fallbackMetadataForUrl("https://www.example.com/path")).toMatchObject({
+    const fallback = fallbackMetadataForUrl("https://www.example.com/path");
+
+    expect(fallback).toMatchObject({
       type: "demo",
       moderation_flag: false,
     });
+    expect(fallback.tagline).toContain("slop");
+    expect(fallback.tagline.length).toBeLessThanOrEqual(100);
   });
 
   it("extracts a reslop tagline from model JSON", () => {
@@ -34,11 +38,12 @@ describe("AI metadata parsing", () => {
   });
 
   it("keeps fallback reslop taglines share-card safe", () => {
-    expect(
-      fallbackReslopTagline({
-        title: "A".repeat(120),
-        url: "https://www.example.com/path",
-      }).length,
-    ).toBeLessThanOrEqual(100);
+    const fallback = fallbackReslopTagline({
+      title: "A".repeat(120),
+      url: "https://www.example.com/path",
+    });
+
+    expect(fallback).toContain("slop");
+    expect(fallback.length).toBeLessThanOrEqual(100);
   });
 });

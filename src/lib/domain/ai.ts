@@ -37,7 +37,7 @@ export function parseAiTaglineText(text: string): string {
 export function fallbackMetadataForUrl(url: string): AiSlopMetadata {
   const hostname = new URL(url).hostname.replace(/^www\./, "");
   return {
-    tagline: `A suspiciously shipped AI thing from ${hostname}`,
+    tagline: truncateTagline(`Fresh slop from ${hostname}, shipped before judgment arrived`),
     type: "demo",
     moderation_flag: false,
     moderation_reason: null,
@@ -49,5 +49,9 @@ export function fallbackReslopTagline(input: { title: string; url: string }): st
   const title = input.title.length > 42 ? `${input.title.slice(0, 39)}...` : input.title;
   const tagline = `Second-pass slop polish for ${title} from ${hostname}`;
 
+  return truncateTagline(tagline);
+}
+
+function truncateTagline(tagline: string): string {
   return tagline.length > 100 ? `${tagline.slice(0, 97)}...` : tagline;
 }

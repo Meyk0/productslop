@@ -33,8 +33,11 @@ export async function generateSlopMetadata(
     model: openAIModel(),
     instructions: [
       "You generate Product Slop submission metadata.",
-      "Return concise, funny metadata for an AI weekend project launch board.",
+      "Return concise, funny metadata for an AI weekend project launch board that celebrates glorious slop.",
       "Tagline must be under 100 characters in irreverent AI weekend-project voice.",
+      "Make the tagline feel like affectionate roast copy, not SaaS marketing.",
+      "Use the word slop, slopped, or slop-adjacent language when it fits naturally.",
+      "Prefer concrete jokes about wrappers, demos, vibes, agents, screenshots, or weekend shipping.",
       "Types: wrapper, tool, game, cursed, useless, demo.",
       "Set moderation_flag true for NSFW, hateful, scammy, phishing, malware, or rights-violating content.",
       "If moderation_flag is true, explain the reason briefly in moderation_reason.",
@@ -70,7 +73,10 @@ export async function regenerateSlopTagline(
     instructions: [
       "You rewrite Product Slop taglines.",
       "Return one punchy tagline under 100 characters.",
-      "Use irreverent AI weekend-project voice, but do not include hateful, NSFW, scammy, phishing, or malware language.",
+      "Make it funnier and more slop-forward than the current tagline.",
+      "Use affectionate roast copy, not SaaS marketing.",
+      "Use the word slop, slopped, or slop-adjacent language when it fits naturally.",
+      "Do not include hateful, NSFW, scammy, phishing, or malware language.",
     ].join(" "),
     input: JSON.stringify({
       url: slop.url,
