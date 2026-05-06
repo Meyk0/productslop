@@ -1,4 +1,4 @@
-import { mkdtemp, rm } from "node:fs/promises";
+import { chmod, mkdtemp, rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -119,6 +119,30 @@ describe("local store", () => {
         totalReactions: 5,
       },
     ]);
+  });
+
+  it("returns seeded slops when the fallback store cannot be persisted", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    await chmod(tempDir, 0o500);
+
+    try {
+      const store = await import("@/lib/server/local-store");
+
+      const slops = await store.listLocalSlops();
+
+      expect(slops.length).toBeGreaterThan(0);
+      expect(slops[0]).toMatchObject({
+        slug: "kanwas-open-source-brain",
+        title: "Kanwas",
+      });
+      expect(warn).toHaveBeenCalledWith(
+        "Unable to persist initial local Product Slop store",
+        expect.anything(),
+      );
+    } finally {
+      await chmod(tempDir, 0o700);
+      warn.mockRestore();
+    }
   });
 });
 

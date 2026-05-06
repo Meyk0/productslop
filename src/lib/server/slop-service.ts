@@ -46,7 +46,11 @@ export type SlopOfTheDay = SlopOfTheDaySelection;
 export async function listSlops(): Promise<Slop[]> {
   const client = getSupabaseAdminClient();
   if (client) {
-    return listSlopsFromSupabase(client);
+    try {
+      return await listSlopsFromSupabase(client);
+    } catch (error) {
+      logSupabaseReadFallback("list slops", error);
+    }
   }
 
   return listLocalSlops();
@@ -55,7 +59,11 @@ export async function listSlops(): Promise<Slop[]> {
 export async function getSlopBySlug(slug: string): Promise<Slop | undefined> {
   const client = getSupabaseAdminClient();
   if (client) {
-    return getSlopBySlugFromSupabase(client, slug);
+    try {
+      return await getSlopBySlugFromSupabase(client, slug);
+    } catch (error) {
+      logSupabaseReadFallback("get slop by slug", error);
+    }
   }
 
   return getLocalSlopBySlug(slug);
@@ -64,7 +72,11 @@ export async function getSlopBySlug(slug: string): Promise<Slop | undefined> {
 export async function getSlopByManageToken(token: string): Promise<Slop | undefined> {
   const client = getSupabaseAdminClient();
   if (client) {
-    return getSlopByManageTokenFromSupabase(client, token);
+    try {
+      return await getSlopByManageTokenFromSupabase(client, token);
+    } catch (error) {
+      logSupabaseReadFallback("get slop by manage token", error);
+    }
   }
 
   return getLocalSlopByManageToken(token);
@@ -174,7 +186,11 @@ export async function getReactionCounts(slug: string): Promise<ReactionCounts> {
 export async function listSlopOfTheDayWinners(): Promise<SlopOfTheDay[]> {
   const client = getSupabaseAdminClient();
   if (client) {
-    return listSlopOfTheDayFromSupabase(client);
+    try {
+      return await listSlopOfTheDayFromSupabase(client);
+    } catch (error) {
+      logSupabaseReadFallback("list slop of the day winners", error);
+    }
   }
 
   return listLocalSlopOfTheDay();
@@ -193,9 +209,14 @@ export async function calculateSlopOfTheDay(
   }
 
   const client = getSupabaseAdminClient();
-  return client
-    ? upsertSlopOfTheDayInSupabase(client, winner)
-    : upsertLocalSlopOfTheDay(winner);
+  try {
+    return client
+      ? await upsertSlopOfTheDayInSupabase(client, winner)
+      : await upsertLocalSlopOfTheDay(winner);
+  } catch (error) {
+    console.error("Failed to persist Slop of the Day winner", error);
+    return winner;
+  }
 }
 
 export async function updateSlopTaglineByToken(
@@ -289,4 +310,8 @@ export function titleFromHostname(hostname: string): string {
       .map((part) => `${part.charAt(0).toUpperCase()}${part.slice(1)}`)
       .join(" ") || "Untitled Slop"
   );
+}
+
+function logSupabaseReadFallback(operation: string, error: unknown) {
+  console.error(`Supabase ${operation} failed; using local fallback`, error);
 }
