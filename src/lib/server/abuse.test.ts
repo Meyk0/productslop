@@ -1,7 +1,19 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
-import { checkSafeBrowsingUrl } from "@/lib/server/abuse";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { lookup } from "node:dns/promises";
+import { checkPublicUrlResolution, checkSafeBrowsingUrl } from "@/lib/server/abuse";
 
 vi.mock("server-only", () => ({}));
+const dnsLookupMock = vi.hoisted(() => vi.fn());
+vi.mock("node:dns/promises", () => ({
+  default: { lookup: dnsLookupMock },
+  lookup: dnsLookupMock,
+}));
+
+const lookupMock = vi.mocked(lookup);
+
+beforeEach(() => {
+  vi.clearAllMocks();
+});
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -62,6 +74,50 @@ describe("Safe Browsing adapter", () => {
     await expect(checkSafeBrowsingUrl("https://bad.example")).resolves.toEqual({
       ok: false,
       message: "That URL is flagged by Safe Browsing.",
+    });
+  });
+});
+
+describe("URL resolution preflight", () => {
+  it("allows hostnames that resolve to public addresses", async () => {
+    lookupMock.mockResolvedValue([{ address: "93.184.216.34", family: 4 }] as never);
+
+    await expect(checkPublicUrlResolution("https://example.com/slop")).resolves.toEqual({
+      ok: true,
+    });
+    expect(lookupMock).toHaveBeenCalledWith("example.com", {
+      all: true,
+      verbatim: true,
+    });
+  });
+
+  it("rejects literal localhost and private addresses before DNS lookup", async () => {
+    await expect(checkPublicUrlResolution("https://127.0.0.1/slop")).resolves.toEqual({
+      ok: false,
+      message: "That URL points at a private or reserved network.",
+    });
+    await expect(checkPublicUrlResolution("https://[::1]/slop")).resolves.toEqual({
+      ok: false,
+      message: "That URL points at a private or reserved network.",
+    });
+    expect(lookupMock).not.toHaveBeenCalled();
+  });
+
+  it("rejects hostnames that resolve to private or reserved addresses", async () => {
+    lookupMock.mockResolvedValue([{ address: "10.0.0.8", family: 4 }] as never);
+
+    await expect(checkPublicUrlResolution("https://launch.example.com")).resolves.toEqual({
+      ok: false,
+      message: "That URL points at a private or reserved network.",
+    });
+  });
+
+  it("rejects hostnames that do not resolve", async () => {
+    lookupMock.mockRejectedValue(new Error("ENOTFOUND"));
+
+    await expect(checkPublicUrlResolution("https://missing.example")).resolves.toEqual({
+      ok: false,
+      message: "That URL needs to resolve publicly.",
     });
   });
 });
