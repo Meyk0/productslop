@@ -10,7 +10,7 @@ export const aiSlopMetadataSchema = z.object({
   moderation_reason: z.string().nullable(),
 });
 
-const aiTaglineSchema = z.object({
+export const aiTaglineSchema = z.object({
   tagline: z.string().trim().min(4).max(100),
 });
 
@@ -19,7 +19,7 @@ export type AiSlopMetadata = z.infer<typeof aiSlopMetadataSchema>;
 export function parseAiMetadataText(text: string): AiSlopMetadata {
   const jsonMatch = text.match(/\{[\s\S]*\}/);
   if (!jsonMatch) {
-    throw new Error("Claude response did not contain JSON.");
+    throw new Error("AI response did not contain JSON.");
   }
 
   return aiSlopMetadataSchema.parse(JSON.parse(jsonMatch[0]));
@@ -28,7 +28,7 @@ export function parseAiMetadataText(text: string): AiSlopMetadata {
 export function parseAiTaglineText(text: string): string {
   const jsonMatch = text.match(/\{[\s\S]*\}/);
   if (!jsonMatch) {
-    throw new Error("Claude response did not contain tagline JSON.");
+    throw new Error("AI response did not contain tagline JSON.");
   }
 
   return aiTaglineSchema.parse(JSON.parse(jsonMatch[0])).tagline;
