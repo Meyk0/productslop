@@ -1,25 +1,28 @@
 import Link from "next/link";
 import { HomeWelcome } from "@/app/(site)/welcome";
-import { SubmitChallenge, TrendingThreads } from "@/components/home-sidebars";
+import { SubmitChallenge } from "@/components/home-sidebars";
 import { PeriodTabs } from "@/components/period-tabs";
 import { SlopFeed } from "@/components/slop-feed";
 import { parseFeedWindow, rankSlops } from "@/lib/domain/ranking";
+import { filterSlopsByQuery, normalizeSearchQuery } from "@/lib/domain/search";
 import { getLatestSlopOfTheDay, listSlops } from "@/lib/server/slop-service";
 
 type HomeProps = {
-  searchParams: Promise<{ deleted?: string; period?: string | string[] }>;
+  searchParams: Promise<{ deleted?: string; period?: string | string[]; q?: string | string[] }>;
 };
 
 export default async function Home({ searchParams }: HomeProps) {
   const params = await searchParams;
-  const activeWindow = parseFeedWindow(params.period);
+  const query = normalizeSearchQuery(params.q);
+  const activeWindow = parseFeedWindow(params.period ?? (query ? "all-time" : undefined));
   const [allSlops, slopOfTheDay] = await Promise.all([listSlops(), getLatestSlopOfTheDay()]);
-  const slops = rankSlops(allSlops, activeWindow);
+  const slops = filterSlopsByQuery(rankSlops(allSlops, activeWindow), query);
+  const heading = query ? "Search launches" : feedHeading(activeWindow);
 
   return (
     <div className="noise">
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-12 lg:px-8">
-        <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_360px]">
+        <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_320px]">
           <div className="min-w-0">
             {params.deleted ? (
               <p className="mb-6 rounded-[8px] border border-emerald-200 bg-emerald-50 p-3 text-sm font-bold text-emerald-700">
@@ -53,25 +56,49 @@ export default async function Home({ searchParams }: HomeProps) {
               <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
                 <div>
                   <p className="font-mono text-sm font-black uppercase text-slop-orange">
-                    The front page of AI slop
+                    The launch board for AI slop
                   </p>
                   <h1 className="mt-3 text-4xl font-black tracking-normal sm:text-5xl">
-                    Top Products Launching Today
+                    {heading}
                   </h1>
+                  {query ? (
+                    <p className="mt-3 max-w-2xl text-base text-muted">
+                      Showing matches for{" "}
+                      <span className="font-bold text-foreground">&quot;{query}&quot;</span>.{" "}
+                      <Link href="/" className="font-bold text-slop-orange">
+                        Clear search
+                      </Link>
+                    </p>
+                  ) : null}
                 </div>
-                <PeriodTabs active={activeWindow} />
+                <PeriodTabs active={activeWindow} query={query} />
               </div>
 
-              <SlopFeed slops={slops} />
+              <SlopFeed slops={slops} query={query} />
             </section>
           </div>
 
           <div className="space-y-10">
             <SubmitChallenge />
-            <TrendingThreads />
           </div>
         </div>
       </div>
     </div>
   );
+}
+
+function feedHeading(window: ReturnType<typeof parseFeedWindow>): string {
+  if (window === "yesterday") {
+    return "Top Products From Yesterday";
+  }
+
+  if (window === "week") {
+    return "Top Products This Week";
+  }
+
+  if (window === "all-time") {
+    return "Top Products All Time";
+  }
+
+  return "Top Products Launching Today";
 }

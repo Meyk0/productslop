@@ -33,7 +33,7 @@ export async function generateSlopMetadata(
     model: openAIModel(),
     instructions: [
       "You generate Product Slop submission metadata.",
-      "Return concise, funny metadata for an AI weekend project parodying Product Hunt.",
+      "Return concise, funny metadata for an AI weekend project launch board.",
       "Tagline must be under 100 characters in irreverent AI weekend-project voice.",
       "Types: wrapper, tool, game, cursed, useless, demo.",
       "Set moderation_flag true for NSFW, hateful, scammy, phishing, malware, or rights-violating content.",

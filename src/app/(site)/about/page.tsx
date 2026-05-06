@@ -10,11 +10,11 @@ export default function AboutPage() {
     <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6 lg:px-8">
       <p className="font-mono text-sm font-black uppercase text-slop-orange">What is this</p>
       <h1 className="mt-3 text-4xl font-black tracking-normal sm:text-5xl">
-        Product Hunt, but for AI weekend projects.
+        A launch board for AI weekend projects.
       </h1>
       <div className="mt-8 space-y-5 text-lg leading-8 text-muted">
         <p>
-          Product Slop is a parody launch board where makers paste a URL, get an
+          Product Slop is a tiny launch board where makers paste a URL, get an
           AI-written tagline, receive a type badge, and share the resulting card.
         </p>
         <p>
