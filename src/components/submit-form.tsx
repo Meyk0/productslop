@@ -120,9 +120,13 @@ export function SubmitForm({ turnstileSiteKey }: { turnstileSiteKey?: string }) 
           <span className="text-sm font-black uppercase text-muted">Paste your slop URL</span>
           <input
             name="url"
-            type="url"
+            type="text"
+            inputMode="url"
             required
-            placeholder="https://your-weekend-build.ai"
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
+            placeholder="your-weekend-build.ai"
             className="mt-3 h-14 w-full rounded-[8px] border border-line px-4 text-lg font-semibold outline-none transition focus:border-slop-orange focus:ring-4 focus:ring-orange-100"
           />
         </label>

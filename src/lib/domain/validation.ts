@@ -63,11 +63,13 @@ export function normalizeHttpsUrl(
   rawUrl: string,
 ): { ok: true; url: string } | { ok: false; message: string } {
   let url: URL;
+  const trimmed = rawUrl.trim();
+  const candidate = hasUrlScheme(trimmed) ? trimmed : `https://${trimmed}`;
 
   try {
-    url = new URL(rawUrl.trim());
+    url = new URL(candidate);
   } catch {
-    return { ok: false, message: "Use a full HTTPS URL." };
+    return { ok: false, message: "Use a public HTTPS URL or domain." };
   }
 
   if (url.protocol !== "https:") {
@@ -80,6 +82,10 @@ export function normalizeHttpsUrl(
 
   url.hash = "";
   return { ok: true, url: url.toString() };
+}
+
+function hasUrlScheme(value: string): boolean {
+  return /^[a-z][a-z\d+.-]*:\/\//i.test(value);
 }
 
 export function normalizeSlopperHandle(

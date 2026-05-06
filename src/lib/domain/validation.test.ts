@@ -13,6 +13,17 @@ describe("submission validation", () => {
     });
   });
 
+  it("accepts bare domains and normalizes them to https", () => {
+    expect(normalizeHttpsUrl("www.standuparca.de")).toEqual({
+      ok: true,
+      url: "https://www.standuparca.de/",
+    });
+    expect(normalizeHttpsUrl("evalarena.xyz/play?mode=demo#results")).toEqual({
+      ok: true,
+      url: "https://evalarena.xyz/play?mode=demo",
+    });
+  });
+
   it("rejects non-https and localhost URLs", () => {
     expect(normalizeHttpsUrl("http://example.com").ok).toBe(false);
     expect(normalizeHttpsUrl("https://localhost:3000").ok).toBe(false);
