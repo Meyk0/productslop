@@ -1,4 +1,4 @@
-import { chmod, mkdtemp, rm } from "node:fs/promises";
+import { chmod, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -121,6 +121,37 @@ describe("local store", () => {
     ]);
   });
 
+  it("merges new bundled seed slops into an existing fallback store", async () => {
+    await mkdir(path.join(tempDir, ".data"));
+    await writeFile(
+      path.join(tempDir, ".data", "local-store.json"),
+      JSON.stringify({
+        slops: [makeSlop()],
+        reactionLedger: [],
+        slopOfTheDay: [],
+      }),
+    );
+
+    const store = await import("@/lib/server/local-store");
+
+    await expect(store.listLocalSlops()).resolves.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ slug: "local-slop", title: "Local Slop" }),
+        expect.objectContaining({
+          slug: "standup-arcade-order-picker",
+          title: "Standup Arcade",
+        }),
+      ]),
+    );
+
+    const persisted = JSON.parse(
+      await readFile(path.join(tempDir, ".data", "local-store.json"), "utf8"),
+    ) as { slops: Array<{ slug: string }> };
+    expect(persisted.slops.some((slop) => slop.slug === "standup-arcade-order-picker")).toBe(
+      true,
+    );
+  });
+
   it("returns seeded slops when the fallback store cannot be persisted", async () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     await chmod(tempDir, 0o500);
@@ -131,10 +162,14 @@ describe("local store", () => {
       const slops = await store.listLocalSlops();
 
       expect(slops.length).toBeGreaterThan(0);
-      expect(slops[0]).toMatchObject({
-        slug: "kanwas-open-source-brain",
-        title: "Kanwas",
-      });
+      expect(slops).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            slug: "kanwas-open-source-brain",
+            title: "Kanwas",
+          }),
+        ]),
+      );
       expect(warn).toHaveBeenCalledWith(
         "Unable to persist initial local Product Slop store",
         expect.anything(),
