@@ -10,6 +10,8 @@ import {
   type SlopRow,
 } from "@/lib/server/supabase-mappers";
 
+const REACTION_ROWS_PAGE_SIZE = 1_000;
+
 export type StoredSlopOfTheDay = {
   date: string;
   slop: Slop;
@@ -250,16 +252,29 @@ async function listReactionRows(
     return [];
   }
 
-  const { data, error } = await client
-    .from("reaction")
-    .select("slop_id,reaction_type")
-    .in("slop_id", slopIds);
+  const reactionRows: ReactionRow[] = [];
+  let from = 0;
 
-  if (error) {
-    throw error;
+  for (;;) {
+    const { data, error } = await client
+      .from("reaction")
+      .select("slop_id,reaction_type")
+      .in("slop_id", slopIds)
+      .range(from, from + REACTION_ROWS_PAGE_SIZE - 1);
+
+    if (error) {
+      throw error;
+    }
+
+    const page = (data ?? []) as ReactionRow[];
+    reactionRows.push(...page);
+
+    if (page.length < REACTION_ROWS_PAGE_SIZE) {
+      return reactionRows;
+    }
+
+    from += REACTION_ROWS_PAGE_SIZE;
   }
-
-  return (data ?? []) as ReactionRow[];
 }
 
 function normalizeJoinedSlop(slop: SlopRow | SlopRow[] | null): SlopRow | null {
