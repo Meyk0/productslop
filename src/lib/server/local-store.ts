@@ -190,7 +190,7 @@ async function readLocalStore(): Promise<LocalStore> {
       reactionLedger: [],
       slopOfTheDay: [],
     };
-    await writeLocalStore(initialStore);
+    await tryWriteInitialStore(initialStore);
     return initialStore;
   }
 }
@@ -198,6 +198,14 @@ async function readLocalStore(): Promise<LocalStore> {
 async function writeLocalStore(store: LocalStore) {
   await mkdir(path.dirname(storePath), { recursive: true });
   await writeFile(storePath, JSON.stringify(store, null, 2));
+}
+
+async function tryWriteInitialStore(store: LocalStore) {
+  try {
+    await writeLocalStore(store);
+  } catch (error) {
+    console.warn("Unable to persist initial local Product Slop store", error);
+  }
 }
 
 function normalizeSlops(slops: unknown): Slop[] {

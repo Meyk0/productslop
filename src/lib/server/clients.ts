@@ -26,12 +26,17 @@ export function getSupabaseAdminClient(): SupabaseClient | null {
     return null;
   }
 
-  supabaseClient ??= createClient(url, serviceRoleKey, {
-    auth: {
-      persistSession: false,
-      autoRefreshToken: false,
-    },
-  });
+  try {
+    supabaseClient ??= createClient(url, serviceRoleKey, {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+      },
+    });
+  } catch (error) {
+    console.error("Unable to initialize Supabase admin client", error);
+    return null;
+  }
 
   return supabaseClient;
 }
