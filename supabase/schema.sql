@@ -40,6 +40,11 @@ create table if not exists slop_of_the_day (
   total_reactions int not null default 0
 );
 
+create index if not exists slop_created_at_idx on slop(created_at desc);
+create index if not exists slop_deleted_at_idx on slop(deleted_at);
+create index if not exists reaction_slop_id_idx on reaction(slop_id);
+create index if not exists reaction_created_at_idx on reaction(created_at desc);
+
 alter table slop enable row level security;
 alter table reaction enable row level security;
 alter table slop_of_the_day enable row level security;
