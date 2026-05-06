@@ -1,8 +1,16 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { ExternalLink, LoaderCircle, RefreshCcw, Send, Share2, Sparkles } from "lucide-react";
+import {
+  CheckCircle2,
+  ExternalLink,
+  LoaderCircle,
+  RefreshCcw,
+  Send,
+  Share2,
+  Sparkles,
+} from "lucide-react";
 import { TradingCard } from "@/components/trading-card";
 import { requestTurnstileToken } from "@/lib/client/turnstile";
 import { buildLinkedInShareUrl, buildProjectUrl, buildXShareUrl } from "@/lib/domain/share";
@@ -21,7 +29,9 @@ export function SubmitForm({ turnstileSiteKey }: { turnstileSiteKey?: string }) 
   const [reslopStatus, setReslopStatus] = useState<"idle" | "loading">("idle");
   const [error, setError] = useState<string | null>(null);
   const [slop, setSlop] = useState<Slop | null>(null);
+  const [emailSent, setEmailSent] = useState(false);
   const [copyIndex, setCopyIndex] = useState(0);
+  const resultRef = useRef<HTMLDivElement>(null);
   const loadingLine = useMemo(() => loadingCopy[copyIndex % loadingCopy.length], [copyIndex]);
   const projectUrl = slop
     ? buildProjectUrl(
@@ -35,6 +45,25 @@ export function SubmitForm({ turnstileSiteKey }: { turnstileSiteKey?: string }) 
   const linkedInShareUrl = slop
     ? buildLinkedInShareUrl(projectUrl)
     : "https://www.linkedin.com/sharing/share-offsite/";
+
+  useEffect(() => {
+    if (status !== "revealed" || !slop || !resultRef.current) {
+      return;
+    }
+
+    const result = resultRef.current;
+    const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    result.focus({ preventScroll: true });
+
+    if (window.matchMedia("(max-width: 1023px)").matches) {
+      window.requestAnimationFrame(() => {
+        result.scrollIntoView({
+          behavior: prefersReducedMotion ? "auto" : "smooth",
+          block: "start",
+        });
+      });
+    }
+  }, [slop, status]);
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -60,12 +89,13 @@ export function SubmitForm({ turnstileSiteKey }: { turnstileSiteKey?: string }) 
         body: JSON.stringify(payload),
       });
 
-      const data = (await response.json()) as { slop?: Slop; error?: string };
+      const data = (await response.json()) as { slop?: Slop; emailSent?: boolean; error?: string };
 
       if (!response.ok || !data.slop) {
         throw new Error(data.error ?? "The slop machine jammed.");
       }
 
+      setEmailSent(Boolean(data.emailSent));
       setSlop(data.slop);
       setStatus("revealed");
     } catch (caught) {
@@ -176,14 +206,31 @@ export function SubmitForm({ turnstileSiteKey }: { turnstileSiteKey?: string }) 
         </button>
 
         <p className="mt-4 text-sm leading-6 text-muted">
-          Turnstile, Microlink, Supabase, and Resend are environment-backed
-          integration points. Local development uses a file-backed fallback store.
+          Optional email is only for a private edit/delete link. If email is not
+          available, the link appears after submit.
         </p>
       </form>
 
       <div className="min-h-[420px]">
         {slop ? (
-          <div className="card-reveal">
+          <div
+            ref={resultRef}
+            tabIndex={-1}
+            role="status"
+            aria-live="polite"
+            className="card-reveal scroll-mt-24 outline-none"
+          >
+            <div className="mb-4 rounded-[8px] border border-emerald-200 bg-emerald-50 p-4 text-emerald-800">
+              <div className="flex items-start gap-3">
+                <CheckCircle2 className="mt-0.5 size-5 shrink-0" />
+                <div>
+                  <p className="font-black">Slop uploaded. Card minted.</p>
+                  <p className="mt-1 text-sm leading-6">
+                    The public card is ready below with share and edit links.
+                  </p>
+                </div>
+              </div>
+            </div>
             <TradingCard slop={slop} />
             <div className="mt-4 rounded-[8px] border border-line bg-white p-4">
               <div className="flex flex-wrap items-start justify-between gap-3">
@@ -194,11 +241,23 @@ export function SubmitForm({ turnstileSiteKey }: { turnstileSiteKey?: string }) 
                   <h2 className="mt-1 text-xl font-black">Ship the link around</h2>
                 </div>
                 {slop.email ? (
-                  <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-700">
-                    Manage link emailed
+                  <span
+                    className={`rounded-full px-3 py-1 text-xs font-black ${
+                      emailSent
+                        ? "bg-emerald-50 text-emerald-700"
+                        : "bg-amber-50 text-amber-700"
+                    }`}
+                  >
+                    {emailSent ? "Manage link emailed" : "Manage link ready"}
                   </span>
                 ) : null}
               </div>
+
+              {slop.email && !emailSent ? (
+                <p className="mt-3 rounded-[8px] border border-amber-200 bg-amber-50 p-3 text-sm font-semibold leading-6 text-amber-800">
+                  Email is not configured here, so use the edit/delete link below.
+                </p>
+              ) : null}
 
               <div className="mt-4 grid gap-2 sm:grid-cols-2">
                 <button

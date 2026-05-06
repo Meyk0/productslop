@@ -18,15 +18,12 @@ export default function AboutPage() {
           AI-written tagline, receive a type badge, and share the resulting card.
         </p>
         <p>
-          V0 intentionally skips accounts, comments, newsletters, and editorial
+          The first version skips accounts, comments, newsletters, and editorial
           curation. The goal is a low-friction loop: launch, reveal, react, share.
         </p>
         <p>
-          Contact and takedown requests go to{" "}
-          <a className="font-bold text-foreground" href="mailto:takedown@productslop.com">
-            takedown@productslop.com
-          </a>
-          .
+          Every launch gets a private manage link for edits and deletes, shown
+          right after submission and emailed when email sending is configured.
         </p>
       </div>
     </div>

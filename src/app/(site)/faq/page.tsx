@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "FAQ",
-  description: "How Product Slop submissions, reactions, and takedowns work.",
+  description: "How Product Slop submissions and reactions work.",
 };
 
 export default function FaqPage() {
@@ -22,16 +22,16 @@ export default function FaqPage() {
           answer="No. Submissions can include an email only so the app can send a private edit or delete link."
         />
         <FaqItem
+          question="What if I do not get an email?"
+          answer="The success card always shows the private edit/delete link. Email only sends when the mail provider is configured."
+        />
+        <FaqItem
           question="How does ranking work?"
           answer="Launches are sorted by reaction totals inside the selected time window. Ties favor newer launches."
         />
         <FaqItem
           question="Are there comments or a forum?"
           answer="No. The first version is only submissions, reactions, daily winners, and share cards."
-        />
-        <FaqItem
-          question="How do takedowns work?"
-          answer="Send the launch URL and a short note to takedown@productslop.com. Unsafe or rights-violating submissions can be removed."
         />
       </div>
     </div>

@@ -8,10 +8,20 @@ import {
 } from "@/lib/server/supabase-store";
 import {
   getLocalSlopBySlug,
+  insertLocalSlop,
   listLocalSlopOfTheDay,
   listLocalSlops,
 } from "@/lib/server/local-store";
-import { getLatestSlopOfTheDay, getSlopBySlug, listSlops } from "@/lib/server/slop-service";
+import { generateSlopMetadata } from "@/lib/server/ai";
+import { assertSlopCopySafe, assertSubmissionPreflight } from "@/lib/server/abuse";
+import { sendMagicLinkEmail } from "@/lib/server/email";
+import { fetchProjectMetadata } from "@/lib/server/microlink";
+import {
+  createSlopWithStatus,
+  getLatestSlopOfTheDay,
+  getSlopBySlug,
+  listSlops,
+} from "@/lib/server/slop-service";
 
 vi.mock("server-only", () => ({}));
 
@@ -47,6 +57,24 @@ vi.mock("@/lib/server/local-store", () => ({
   upsertLocalSlopOfTheDay: vi.fn(),
 }));
 
+vi.mock("@/lib/server/ai", () => ({
+  generateSlopMetadata: vi.fn(),
+  regenerateSlopTagline: vi.fn(),
+}));
+
+vi.mock("@/lib/server/abuse", () => ({
+  assertSlopCopySafe: vi.fn(),
+  assertSubmissionPreflight: vi.fn(),
+}));
+
+vi.mock("@/lib/server/email", () => ({
+  sendMagicLinkEmail: vi.fn(),
+}));
+
+vi.mock("@/lib/server/microlink", () => ({
+  fetchProjectMetadata: vi.fn(),
+}));
+
 const getSupabaseAdminClientMock = vi.mocked(getSupabaseAdminClient);
 const listSlopsFromSupabaseMock = vi.mocked(listSlopsFromSupabase);
 const getSlopBySlugFromSupabaseMock = vi.mocked(getSlopBySlugFromSupabase);
@@ -54,6 +82,12 @@ const listSlopOfTheDayFromSupabaseMock = vi.mocked(listSlopOfTheDayFromSupabase)
 const listLocalSlopsMock = vi.mocked(listLocalSlops);
 const getLocalSlopBySlugMock = vi.mocked(getLocalSlopBySlug);
 const listLocalSlopOfTheDayMock = vi.mocked(listLocalSlopOfTheDay);
+const insertLocalSlopMock = vi.mocked(insertLocalSlop);
+const generateSlopMetadataMock = vi.mocked(generateSlopMetadata);
+const assertSubmissionPreflightMock = vi.mocked(assertSubmissionPreflight);
+const assertSlopCopySafeMock = vi.mocked(assertSlopCopySafe);
+const sendMagicLinkEmailMock = vi.mocked(sendMagicLinkEmail);
+const fetchProjectMetadataMock = vi.mocked(fetchProjectMetadata);
 
 beforeEach(() => {
   vi.resetAllMocks();
@@ -97,6 +131,44 @@ describe("slop service read fallbacks", () => {
 
     await expect(getLatestSlopOfTheDay()).resolves.toBe(winner);
     expect(listLocalSlopOfTheDayMock).toHaveBeenCalled();
+  });
+});
+
+describe("slop service creation", () => {
+  it("returns email delivery status and keeps fetched screenshots", async () => {
+    getSupabaseAdminClientMock.mockReturnValue(null);
+    listLocalSlopsMock.mockResolvedValue([]);
+    fetchProjectMetadataMock.mockResolvedValue({
+      title: "EvalArena",
+      description: "Practice LLM evals with real-world challenges.",
+      screenshotUrl: "https://cdn.example/evalarena.png",
+    });
+    generateSlopMetadataMock.mockResolvedValue({
+      tagline: "Eval slop with a leaderboard and a tiny clipboard cape",
+      type: "tool",
+      moderation_flag: false,
+      moderation_reason: null,
+    });
+    insertLocalSlopMock.mockImplementation(async (slop) => slop);
+    sendMagicLinkEmailMock.mockResolvedValue({ sent: false });
+
+    const result = await createSlopWithStatus({
+      url: "https://evalarena.xyz/",
+      email: "maker@example.com",
+    });
+
+    expect(assertSubmissionPreflightMock).toHaveBeenCalledWith({
+      url: "https://evalarena.xyz/",
+      email: "maker@example.com",
+    });
+    expect(assertSlopCopySafeMock).toHaveBeenCalledWith({
+      title: "EvalArena",
+      tagline: "Eval slop with a leaderboard and a tiny clipboard cape",
+    });
+    expect(result.emailSent).toBe(false);
+    expect(result.slop.title).toBe("EvalArena");
+    expect(result.slop.screenshotUrl).toBe("https://cdn.example/evalarena.png");
+    expect(sendMagicLinkEmailMock).toHaveBeenCalledWith(result.slop);
   });
 });
 

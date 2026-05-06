@@ -17,8 +17,8 @@ export default function SubmitPage() {
           Paste a URL. Get a card.
         </h1>
         <p className="mt-4 text-lg leading-8 text-muted">
-          No accounts, no profiles, no curation theater. The local build creates
-          a durable dev launch while service keys are not configured.
+          No profiles, no curation theater. Paste the project, get a lightly
+          roasted card, and share the result.
         </p>
       </div>
       <SubmitForm turnstileSiteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY} />

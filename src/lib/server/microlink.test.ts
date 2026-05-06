@@ -39,6 +39,7 @@ describe("Microlink metadata adapter", () => {
     const [url, request] = fetchMock.mock.calls[0] as [URL, RequestInit];
     expect(url.toString()).toContain("https://api.microlink.io/");
     expect(url.searchParams.get("screenshot")).toBe("true");
+    expect(url.searchParams.has("meta")).toBe(false);
     expect(request.headers).toBeUndefined();
   });
 
