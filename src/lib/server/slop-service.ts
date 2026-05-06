@@ -1,14 +1,22 @@
 import "server-only";
 
+import { randomUUID } from "node:crypto";
 import { nanoid } from "nanoid";
 import type { ReactionCounts, Slop } from "@/lib/domain/slop";
 import { createEmptyReactionCounts, createSlug } from "@/lib/domain/slop";
 import { parseSubmissionInput, type SubmissionInput } from "@/lib/domain/validation";
 import { applyReaction } from "@/lib/domain/reactions";
+import { getSupabaseAdminClient } from "@/lib/server/clients";
 import { generateSlopMetadata } from "@/lib/server/ai";
 import { seedSlops } from "@/lib/data/mock-slops";
 import { sendMagicLinkEmail } from "@/lib/server/email";
 import { fetchProjectMetadata } from "@/lib/server/microlink";
+import {
+  getSlopBySlugFromSupabase,
+  insertReactionIntoSupabase,
+  insertSlopIntoSupabase,
+  listSlopsFromSupabase,
+} from "@/lib/server/supabase-store";
 
 let runtimeSlops: Slop[] = seedSlops.map((slop) => ({
   ...slop,
@@ -18,10 +26,20 @@ let runtimeSlops: Slop[] = seedSlops.map((slop) => ({
 const reactionLedger = new Set<string>();
 
 export async function listSlops(): Promise<Slop[]> {
+  const client = getSupabaseAdminClient();
+  if (client) {
+    return listSlopsFromSupabase(client);
+  }
+
   return runtimeSlops.filter((slop) => !slop.deletedAt);
 }
 
 export async function getSlopBySlug(slug: string): Promise<Slop | undefined> {
+  const client = getSupabaseAdminClient();
+  if (client) {
+    return getSlopBySlugFromSupabase(client, slug);
+  }
+
   return runtimeSlops.find((slop) => slop.slug === slug && !slop.deletedAt);
 }
 
@@ -48,7 +66,8 @@ export async function createSlop(input: SubmissionInput): Promise<Slop> {
     throw new Error(metadata.moderation_reason ?? "That slop is not launchable.");
   }
 
-  const id = nanoid();
+  const client = getSupabaseAdminClient();
+  const id = client ? randomUUID() : nanoid();
   const url = new URL(input.url);
   const title = projectMetadata.title?.trim() || titleFromHostname(url.hostname);
   const slop: Slop = {
@@ -68,25 +87,40 @@ export async function createSlop(input: SubmissionInput): Promise<Slop> {
     reactionCounts: createEmptyReactionCounts(),
   };
 
-  runtimeSlops = [slop, ...runtimeSlops];
+  const savedSlop = client ? await insertSlopIntoSupabase(client, slop) : slop;
+  if (!client) {
+    runtimeSlops = [savedSlop, ...runtimeSlops];
+  }
+
   try {
-    await sendMagicLinkEmail(slop);
+    await sendMagicLinkEmail(savedSlop);
   } catch (error) {
     console.error("Failed to send Product Slop magic link", error);
   }
 
-  return slop;
+  return savedSlop;
 }
 
 export async function recordReaction(params: {
   slug: string;
   reactionType: string;
   sessionId: string;
+  ipHash?: string;
 }): Promise<{ counts: ReactionCounts; changed: boolean }> {
   const slop = await getSlopBySlug(params.slug);
 
   if (!slop) {
     throw new Error("Slop not found.");
+  }
+
+  const client = getSupabaseAdminClient();
+  if (client) {
+    return insertReactionIntoSupabase(client, {
+      slopId: slop.id,
+      reactionType: params.reactionType,
+      sessionId: params.sessionId,
+      ipHash: params.ipHash,
+    });
   }
 
   const result = applyReaction(slop, params.reactionType, params.sessionId, reactionLedger);

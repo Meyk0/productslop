@@ -1,6 +1,6 @@
 import { nanoid } from "nanoid";
 import { type NextRequest, NextResponse } from "next/server";
-import { checkReactionRateLimit, verifyTurnstileToken } from "@/lib/server/abuse";
+import { checkReactionRateLimit, hashIp, verifyTurnstileToken } from "@/lib/server/abuse";
 import { getClientIp } from "@/lib/server/request";
 import { recordReaction } from "@/lib/server/slop-service";
 
@@ -44,6 +44,7 @@ export async function POST(request: NextRequest) {
       slug: body.slug,
       reactionType: body.reactionType,
       sessionId,
+      ipHash: hashIp(ip),
     });
 
     const response = NextResponse.json(result);
