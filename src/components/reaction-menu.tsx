@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useState } from "react";
+import { requestTurnstileToken } from "@/lib/client/turnstile";
 import {
   REACTION_TYPES,
   totalReactions,
@@ -8,39 +9,60 @@ import {
   type Slop,
 } from "@/lib/domain/slop";
 
-export function ReactionMenu({ slop }: { slop: Slop }) {
+export function ReactionMenu({
+  slop,
+  turnstileSiteKey,
+}: {
+  slop: Slop;
+  turnstileSiteKey?: string;
+}) {
   const [counts, setCounts] = useState<ReactionCounts>(slop.reactionCounts);
   const [used, setUsed] = useState<Set<string>>(() => new Set());
   const [pendingReaction, setPendingReaction] = useState<string | null>(null);
-  const [isPending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
   const total = useMemo(() => totalReactions({ reactionCounts: counts }), [counts]);
 
-  function react(reactionType: string) {
-    if (used.has(reactionType)) {
+  async function react(reactionType: string) {
+    if (used.has(reactionType) || pendingReaction) {
       return;
     }
 
-    setUsed((current) => new Set(current).add(reactionType));
-    setCounts((current) => ({
-      ...current,
-      [reactionType]: current[reactionType as keyof ReactionCounts] + 1,
-    }));
+    const previousCounts = counts;
     setPendingReaction(reactionType);
+    setError(null);
 
-    startTransition(async () => {
+    try {
+      const turnstileToken = await requestTurnstileToken(turnstileSiteKey, "reaction");
+
+      setUsed((current) => new Set(current).add(reactionType));
+      setCounts((current) => ({
+        ...current,
+        [reactionType]: current[reactionType as keyof ReactionCounts] + 1,
+      }));
+
       const response = await fetch("/api/reactions", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ slug: slop.slug, reactionType }),
+        body: JSON.stringify({ slug: slop.slug, reactionType, turnstileToken }),
       });
+      const data = (await response.json()) as { counts?: ReactionCounts; error?: string };
 
-      if (response.ok) {
-        const data = (await response.json()) as { counts: ReactionCounts };
-        setCounts(data.counts);
+      if (!response.ok || !data.counts) {
+        throw new Error(data.error ?? "Unable to react.");
       }
 
+      setCounts(data.counts);
+    } catch (caught) {
+      setUsed((current) => {
+        const next = new Set(current);
+        next.delete(reactionType);
+        return next;
+      });
+      setCounts(previousCounts);
+      setError(caught instanceof Error ? caught.message : "Unable to react.");
+    } finally {
       setPendingReaction(null);
-    });
+    }
   }
 
   return (
@@ -55,17 +77,23 @@ export function ReactionMenu({ slop }: { slop: Slop }) {
         </div>
       </div>
 
+      {error ? (
+        <p className="mt-3 rounded-[8px] border border-rose-200 bg-rose-50 p-3 text-sm font-semibold text-rose-700">
+          {error}
+        </p>
+      ) : null}
+
       <div className="mt-4 grid gap-2 sm:grid-cols-2">
         {REACTION_TYPES.map((reaction) => {
           const alreadyUsed = used.has(reaction.id);
-          const isWorking = isPending && pendingReaction === reaction.id;
+          const isWorking = pendingReaction === reaction.id;
 
           return (
             <button
               key={reaction.id}
               type="button"
               onClick={() => react(reaction.id)}
-              disabled={alreadyUsed}
+              disabled={alreadyUsed || Boolean(pendingReaction)}
               className="group min-h-16 rounded-[8px] border border-line bg-white px-4 py-3 text-left transition enabled:hover:-translate-y-0.5 enabled:hover:border-slop-orange enabled:hover:shadow-sm disabled:bg-slate-50"
             >
               <span className="flex items-center justify-between gap-3">
@@ -75,7 +103,7 @@ export function ReactionMenu({ slop }: { slop: Slop }) {
                 </span>
               </span>
               <span className="mt-1 block text-xs leading-5 text-muted">
-                {isWorking ? "counting..." : reaction.vibe}
+                {isWorking ? "checking..." : reaction.vibe}
               </span>
             </button>
           );
