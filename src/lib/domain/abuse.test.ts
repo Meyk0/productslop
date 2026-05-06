@@ -8,6 +8,8 @@ import {
 describe("abuse domain rules", () => {
   it("rejects masked URL shortener domains", () => {
     expect(validateSubmittedUrlDomain("https://bit.ly/slop").ok).toBe(false);
+    expect(validateSubmittedUrlDomain("https://t.co/slop").ok).toBe(false);
+    expect(validateSubmittedUrlDomain("https://tiny.cc/slop").ok).toBe(false);
     expect(validateSubmittedUrlDomain("https://launch.example.com")).toEqual({ ok: true });
   });
 

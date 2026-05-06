@@ -2,11 +2,18 @@ export type SafetyResult = { ok: true } | { ok: false; message: string };
 
 const blockedHostnames = new Set([
   "bit.ly",
+  "buff.ly",
   "cutt.ly",
   "goo.gl",
   "is.gd",
+  "lnkd.in",
   "ow.ly",
+  "rb.gy",
   "rebrand.ly",
+  "s.id",
+  "shorturl.at",
+  "t.co",
+  "tiny.cc",
   "tinyurl.com",
 ]);
 
