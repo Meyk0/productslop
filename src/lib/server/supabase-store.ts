@@ -138,6 +138,26 @@ export async function updateSlopTaglineInSupabase(
   return row ? toSlop(row as SlopRow) : undefined;
 }
 
+export async function reslopSlopInSupabase(
+  client: SupabaseClient,
+  params: { token: string; tagline: string },
+): Promise<Slop | undefined> {
+  const { data: row, error } = await client
+    .from("slop")
+    .update({ tagline: params.tagline, reslop_used: true })
+    .eq("manage_token", params.token)
+    .or("reslop_used.eq.false,reslop_used.is.null")
+    .is("deleted_at", null)
+    .select("*")
+    .maybeSingle();
+
+  if (error) {
+    throw error;
+  }
+
+  return row ? toSlop(row as SlopRow) : undefined;
+}
+
 export async function softDeleteSlopInSupabase(
   client: SupabaseClient,
   token: string,

@@ -44,6 +44,16 @@ describe("local store", () => {
       id: slop.id,
       tagline: "A sharper local tagline",
     });
+    await expect(
+      store.reslopLocalSlop("manage-token", "A one-shot reslop tagline"),
+    ).resolves.toMatchObject({
+      id: slop.id,
+      tagline: "A one-shot reslop tagline",
+      reslopUsed: true,
+    });
+    await expect(
+      store.reslopLocalSlop("manage-token", "A second reslop should fail"),
+    ).resolves.toBeUndefined();
 
     await expect(store.softDeleteLocalSlop("manage-token")).resolves.toBe(true);
     await expect(store.getLocalSlopBySlug(slop.slug)).resolves.toBeUndefined();

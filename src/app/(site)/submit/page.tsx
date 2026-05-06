@@ -18,7 +18,7 @@ export default function SubmitPage() {
         </h1>
         <p className="mt-4 text-lg leading-8 text-muted">
           No accounts, no profiles, no curation theater. The local build creates
-          an in-memory launch while service keys are not configured.
+          a durable dev launch while service keys are not configured.
         </p>
       </div>
       <SubmitForm />
