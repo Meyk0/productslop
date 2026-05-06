@@ -13,6 +13,7 @@ import { parseSubmissionInput, type SubmissionInput } from "@/lib/domain/validat
 import { parseTagline } from "@/lib/domain/manage";
 import { getSupabaseAdminClient } from "@/lib/server/clients";
 import { generateSlopMetadata, regenerateSlopTagline } from "@/lib/server/ai";
+import { assertSlopCopySafe, assertSubmissionPreflight } from "@/lib/server/abuse";
 import { sendMagicLinkEmail } from "@/lib/server/email";
 import { fetchProjectMetadata } from "@/lib/server/microlink";
 import {
@@ -80,6 +81,11 @@ export async function createSlopFromUnknown(input: unknown): Promise<Slop> {
 }
 
 export async function createSlop(input: SubmissionInput): Promise<Slop> {
+  await assertSubmissionPreflight({
+    url: input.url,
+    email: input.email,
+  });
+
   const projectMetadata = await fetchProjectMetadata(input.url);
   const metadata = await generateSlopMetadata({
     url: input.url,
@@ -97,6 +103,12 @@ export async function createSlop(input: SubmissionInput): Promise<Slop> {
   const existingSlops = client ? [] : await listLocalSlops();
   const url = new URL(input.url);
   const title = projectMetadata.title?.trim() || titleFromHostname(url.hostname);
+
+  assertSlopCopySafe({
+    title,
+    tagline: metadata.tagline,
+  });
+
   const slop: Slop = {
     id,
     slug: createSlug(title, id),
