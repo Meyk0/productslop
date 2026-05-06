@@ -7,6 +7,8 @@ import { parseSubmissionInput, type SubmissionInput } from "@/lib/domain/validat
 import { applyReaction } from "@/lib/domain/reactions";
 import { generateSlopMetadata } from "@/lib/server/ai";
 import { seedSlops } from "@/lib/data/mock-slops";
+import { sendMagicLinkEmail } from "@/lib/server/email";
+import { fetchProjectMetadata } from "@/lib/server/microlink";
 
 let runtimeSlops: Slop[] = seedSlops.map((slop) => ({
   ...slop,
@@ -34,7 +36,13 @@ export async function createSlopFromUnknown(input: unknown): Promise<Slop> {
 }
 
 export async function createSlop(input: SubmissionInput): Promise<Slop> {
-  const metadata = await generateSlopMetadata({ url: input.url });
+  const projectMetadata = await fetchProjectMetadata(input.url);
+  const metadata = await generateSlopMetadata({
+    url: input.url,
+    title: projectMetadata.title,
+    description: projectMetadata.description,
+    screenshotUrl: projectMetadata.screenshotUrl,
+  });
 
   if (metadata.moderation_flag) {
     throw new Error(metadata.moderation_reason ?? "That slop is not launchable.");
@@ -42,13 +50,14 @@ export async function createSlop(input: SubmissionInput): Promise<Slop> {
 
   const id = nanoid();
   const url = new URL(input.url);
-  const title = titleFromHostname(url.hostname);
+  const title = projectMetadata.title?.trim() || titleFromHostname(url.hostname);
   const slop: Slop = {
     id,
     slug: createSlug(title, id),
     url: input.url,
     title,
     tagline: metadata.tagline,
+    screenshotUrl: projectMetadata.screenshotUrl,
     type: metadata.type,
     slopperHandle: input.slopperHandle,
     email: input.email,
@@ -60,6 +69,12 @@ export async function createSlop(input: SubmissionInput): Promise<Slop> {
   };
 
   runtimeSlops = [slop, ...runtimeSlops];
+  try {
+    await sendMagicLinkEmail(slop);
+  } catch (error) {
+    console.error("Failed to send Product Slop magic link", error);
+  }
+
   return slop;
 }
 

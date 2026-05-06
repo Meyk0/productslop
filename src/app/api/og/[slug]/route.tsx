@@ -2,8 +2,6 @@ import { ImageResponse } from "@vercel/og";
 import { getSlopTypeMeta, totalReactions } from "@/lib/domain/slop";
 import { getSlopBySlug } from "@/lib/server/slop-service";
 
-export const runtime = "edge";
-
 type OgRouteContext = {
   params: Promise<{ slug: string }>;
 };
