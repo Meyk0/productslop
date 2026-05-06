@@ -9,7 +9,7 @@ import { buildLinkedInShareUrl, buildProjectUrl, buildXShareUrl } from "@/lib/do
 import type { Slop } from "@/lib/domain/slop";
 
 const loadingCopy = [
-  "yapping at Claude...",
+  "yapping at OpenAI...",
   "counting strawberries...",
   "hallucinating tagline...",
   "checking if this is a wrapper...",

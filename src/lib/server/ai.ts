@@ -1,14 +1,17 @@
 import "server-only";
 
+import { zodTextFormat } from "openai/helpers/zod";
 import {
-  fallbackReslopTagline,
+  aiSlopMetadataSchema,
+  aiTaglineSchema,
   fallbackMetadataForUrl,
-  parseAiMetadataText,
-  parseAiTaglineText,
+  fallbackReslopTagline,
   type AiSlopMetadata,
 } from "@/lib/domain/ai";
 import type { Slop } from "@/lib/domain/slop";
-import { getAnthropicClient } from "@/lib/server/clients";
+import { getOpenAIClient } from "@/lib/server/clients";
+
+export const defaultOpenAIModel = "gpt-5.4-mini";
 
 export type GenerateMetadataInput = {
   url: string;
@@ -20,75 +23,77 @@ export type GenerateMetadataInput = {
 export async function generateSlopMetadata(
   input: GenerateMetadataInput,
 ): Promise<AiSlopMetadata> {
-  const client = getAnthropicClient();
+  const client = getOpenAIClient();
 
   if (!client) {
     return fallbackMetadataForUrl(input.url);
   }
 
-  const message = await client.messages.create({
-    model: process.env.ANTHROPIC_MODEL ?? "claude-3-5-haiku-latest",
-    max_tokens: 420,
-    temperature: 0.8,
-    system: [
+  const response = await client.responses.parse({
+    model: openAIModel(),
+    instructions: [
       "You generate Product Slop submission metadata.",
-      "Return only JSON with tagline, type, moderation_flag, moderation_reason.",
+      "Return concise, funny metadata for an AI weekend project parodying Product Hunt.",
       "Tagline must be under 100 characters in irreverent AI weekend-project voice.",
       "Types: wrapper, tool, game, cursed, useless, demo.",
-      "Flag NSFW, hateful, scammy, phishing, or malware content.",
+      "Set moderation_flag true for NSFW, hateful, scammy, phishing, malware, or rights-violating content.",
+      "If moderation_flag is true, explain the reason briefly in moderation_reason.",
     ].join(" "),
-    messages: [
-      {
-        role: "user",
-        content: JSON.stringify(input),
-      },
-    ],
+    input: JSON.stringify(input),
+    max_output_tokens: 420,
+    reasoning: { effort: "low" },
+    store: false,
+    text: {
+      format: zodTextFormat(aiSlopMetadataSchema, "slop_metadata"),
+      verbosity: "low",
+    },
   });
 
-  const text = message.content.find((part) => part.type === "text")?.text;
-  if (!text) {
-    return fallbackMetadataForUrl(input.url);
+  if (!response.output_parsed) {
+    throw new Error("OpenAI response did not match the slop metadata schema.");
   }
 
-  return parseAiMetadataText(text);
+  return response.output_parsed;
 }
 
 export async function regenerateSlopTagline(
   slop: Pick<Slop, "url" | "title" | "tagline" | "type">,
 ): Promise<string> {
-  const client = getAnthropicClient();
+  const client = getOpenAIClient();
 
   if (!client) {
     return fallbackReslopTagline(slop);
   }
 
-  const message = await client.messages.create({
-    model: process.env.ANTHROPIC_MODEL ?? "claude-3-5-haiku-latest",
-    max_tokens: 180,
-    temperature: 0.95,
-    system: [
+  const response = await client.responses.parse({
+    model: openAIModel(),
+    instructions: [
       "You rewrite Product Slop taglines.",
-      "Return only JSON with a single tagline field.",
-      "Tagline must be under 100 characters, punchy, and in irreverent AI weekend-project voice.",
-      "Do not include hateful, NSFW, scammy, phishing, or malware language.",
+      "Return one punchy tagline under 100 characters.",
+      "Use irreverent AI weekend-project voice, but do not include hateful, NSFW, scammy, phishing, or malware language.",
     ].join(" "),
-    messages: [
-      {
-        role: "user",
-        content: JSON.stringify({
-          url: slop.url,
-          title: slop.title,
-          currentTagline: slop.tagline,
-          type: slop.type,
-        }),
-      },
-    ],
+    input: JSON.stringify({
+      url: slop.url,
+      title: slop.title,
+      currentTagline: slop.tagline,
+      type: slop.type,
+    }),
+    max_output_tokens: 180,
+    reasoning: { effort: "low" },
+    store: false,
+    text: {
+      format: zodTextFormat(aiTaglineSchema, "reslop_tagline"),
+      verbosity: "low",
+    },
   });
 
-  const text = message.content.find((part) => part.type === "text")?.text;
-  if (!text) {
-    return fallbackReslopTagline(slop);
+  if (!response.output_parsed) {
+    throw new Error("OpenAI response did not match the tagline schema.");
   }
 
-  return parseAiTaglineText(text);
+  return response.output_parsed.tagline;
+}
+
+export function openAIModel(): string {
+  return process.env.OPENAI_MODEL?.trim() || defaultOpenAIModel;
 }
