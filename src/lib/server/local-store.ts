@@ -52,6 +52,26 @@ export async function updateLocalSlopTagline(
   return slop;
 }
 
+export async function reslopLocalSlop(
+  token: string,
+  tagline: string,
+): Promise<Slop | undefined> {
+  const store = await readLocalStore();
+  const slop = store.slops.find(
+    (candidate) =>
+      candidate.manageToken === token && !candidate.deletedAt && !candidate.reslopUsed,
+  );
+
+  if (!slop) {
+    return undefined;
+  }
+
+  slop.tagline = tagline;
+  slop.reslopUsed = true;
+  await writeLocalStore(store);
+  return slop;
+}
+
 export async function softDeleteLocalSlop(token: string): Promise<boolean> {
   const store = await readLocalStore();
   const slop = store.slops.find((candidate) => candidate.manageToken === token && !candidate.deletedAt);
@@ -132,6 +152,7 @@ function normalizeSlops(slops: unknown): Slop[] {
 
   return slops.map((slop) => ({
     ...(slop as Slop),
+    reslopUsed: (slop as Slop).reslopUsed ?? false,
     reactionCounts: {
       ...createEmptyReactionCounts(),
       ...(slop as Slop).reactionCounts,

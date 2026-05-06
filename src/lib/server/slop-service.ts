@@ -7,7 +7,7 @@ import { createEmptyReactionCounts, createSlug } from "@/lib/domain/slop";
 import { parseSubmissionInput, type SubmissionInput } from "@/lib/domain/validation";
 import { parseTagline } from "@/lib/domain/manage";
 import { getSupabaseAdminClient } from "@/lib/server/clients";
-import { generateSlopMetadata } from "@/lib/server/ai";
+import { generateSlopMetadata, regenerateSlopTagline } from "@/lib/server/ai";
 import { sendMagicLinkEmail } from "@/lib/server/email";
 import { fetchProjectMetadata } from "@/lib/server/microlink";
 import {
@@ -16,6 +16,7 @@ import {
   insertReactionIntoSupabase,
   insertSlopIntoSupabase,
   listSlopsFromSupabase,
+  reslopSlopInSupabase,
   softDeleteSlopInSupabase,
   updateSlopTaglineInSupabase,
 } from "@/lib/server/supabase-store";
@@ -25,6 +26,7 @@ import {
   insertLocalReaction,
   insertLocalSlop,
   listLocalSlops,
+  reslopLocalSlop,
   softDeleteLocalSlop,
   updateLocalSlopTagline,
 } from "@/lib/server/local-store";
@@ -94,7 +96,7 @@ export async function createSlop(input: SubmissionInput): Promise<Slop> {
     type: metadata.type,
     slopperHandle: input.slopperHandle,
     email: input.email,
-    manageToken: input.email ? nanoid(32) : undefined,
+    manageToken: nanoid(32),
     reslopUsed: false,
     founding: client ? false : existingSlops.length < 50,
     createdAt: new Date().toISOString(),
@@ -191,6 +193,40 @@ export async function deleteSlopByToken(token: string): Promise<void> {
   if (!deleted) {
     throw new Error("Magic link not found.");
   }
+}
+
+export async function reslopByToken(token: string, expectedSlug?: string): Promise<Slop> {
+  const slop = await getSlopByManageToken(token);
+  if (!slop) {
+    throw new Error("Magic link not found.");
+  }
+
+  if (expectedSlug && slop.slug !== expectedSlug) {
+    throw new Error("Magic link not found.");
+  }
+
+  if (slop.reslopUsed) {
+    throw new Error("Reslop already used.");
+  }
+
+  const tagline = await regenerateSlopTagline(slop);
+  const client = getSupabaseAdminClient();
+
+  if (client) {
+    const updated = await reslopSlopInSupabase(client, { token, tagline });
+    if (!updated) {
+      throw new Error("Reslop already used.");
+    }
+
+    return updated;
+  }
+
+  const updated = await reslopLocalSlop(token, tagline);
+  if (!updated) {
+    throw new Error("Reslop already used.");
+  }
+
+  return updated;
 }
 
 export function titleFromHostname(hostname: string): string {

@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { fallbackMetadataForUrl, parseAiMetadataText } from "@/lib/domain/ai";
+import {
+  fallbackMetadataForUrl,
+  fallbackReslopTagline,
+  parseAiMetadataText,
+  parseAiTaglineText,
+} from "@/lib/domain/ai";
 
 describe("AI metadata parsing", () => {
   it("extracts valid JSON from a model response", () => {
@@ -20,5 +25,20 @@ describe("AI metadata parsing", () => {
       type: "demo",
       moderation_flag: false,
     });
+  });
+
+  it("extracts a reslop tagline from model JSON", () => {
+    expect(parseAiTaglineText('{"tagline":"Somehow worse, somehow better."}')).toBe(
+      "Somehow worse, somehow better.",
+    );
+  });
+
+  it("keeps fallback reslop taglines share-card safe", () => {
+    expect(
+      fallbackReslopTagline({
+        title: "A".repeat(120),
+        url: "https://www.example.com/path",
+      }).length,
+    ).toBeLessThanOrEqual(100);
   });
 });
