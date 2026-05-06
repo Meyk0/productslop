@@ -6,7 +6,7 @@ import { parseFeedWindow, rankSlops } from "@/lib/domain/ranking";
 import { listSlops } from "@/lib/server/slop-service";
 
 type HomeProps = {
-  searchParams: Promise<{ period?: string | string[] }>;
+  searchParams: Promise<{ deleted?: string; period?: string | string[] }>;
 };
 
 export default async function Home({ searchParams }: HomeProps) {
@@ -19,6 +19,12 @@ export default async function Home({ searchParams }: HomeProps) {
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-12 lg:px-8">
         <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_360px]">
           <div className="min-w-0">
+            {params.deleted ? (
+              <p className="mb-6 rounded-[8px] border border-emerald-200 bg-emerald-50 p-3 text-sm font-bold text-emerald-700">
+                Slop deleted from the public feed.
+              </p>
+            ) : null}
+
             <HomeWelcome />
 
             <section className="mt-16">

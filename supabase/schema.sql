@@ -42,6 +42,7 @@ create table if not exists slop_of_the_day (
 
 create index if not exists slop_created_at_idx on slop(created_at desc);
 create index if not exists slop_deleted_at_idx on slop(deleted_at);
+create index if not exists slop_manage_token_idx on slop(manage_token);
 create index if not exists reaction_slop_id_idx on reaction(slop_id);
 create index if not exists reaction_created_at_idx on reaction(created_at desc);
 
