@@ -10,6 +10,8 @@ export const metadata: Metadata = {
   description: "Past and current Product Slop winners.",
 };
 
+export const dynamic = "force-dynamic";
+
 export default async function HallOfSlopPage() {
   const winners = await listSlopOfTheDayWinners();
   const fallbackSlops = winners.length === 0 ? rankSlops(await listSlops(), "all-time").slice(0, 10) : [];
