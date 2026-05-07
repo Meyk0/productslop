@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { adminDeleteSlopAction } from "@/app/(site)/p/[slug]/actions";
+import { CopyLinkButton } from "@/components/copy-link-button";
 import { ReactionMenu } from "@/components/reaction-menu";
 import { SlopFeed } from "@/components/slop-feed";
 import { TradingCard } from "@/components/trading-card";
@@ -66,6 +67,17 @@ export default async function ProjectPage({ params, searchParams }: ProjectPageP
               {slop.title}
             </h1>
             <p className="mt-4 max-w-2xl text-xl leading-8 text-muted">{slop.tagline}</p>
+            <div className="mt-5 flex flex-wrap gap-2">
+              <CopyLinkButton url={`/p/${slop.slug}`} slug={slop.slug} source="detail" />
+              <a
+                href={slop.url}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-full bg-foreground px-4 text-sm font-black text-white transition hover:bg-black"
+              >
+                Visit project
+              </a>
+            </div>
           </div>
 
           <ReactionMenu
