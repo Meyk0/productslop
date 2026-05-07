@@ -12,6 +12,7 @@ The front page of AI slop: a lightweight launch board for weekend projects.
 - One-time Reslop tagline reroll and share CTAs on the submission reveal
 - Cron-backed Slop of the Day calculation with Hall of Slop storage
 - Abuse checks for masked domains, disposable email, risky generated copy, Turnstile, rate limits, and optional Safe Browsing
+- Duplicate protection for active submissions using canonical app URLs
 - OG card route at `/api/og/[slug]`
 - Unit tests for validation, ranking, reactions, local persistence, sharing, slugging, and AI response parsing
 - Supabase SQL schema starter in `supabase/schema.sql` and launch seed data in `supabase/seed.sql`

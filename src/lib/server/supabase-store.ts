@@ -83,15 +83,51 @@ export async function getSlopByManageTokenFromSupabase(
   return toSlop(slopRow, reactionRows);
 }
 
+export async function getSlopByCanonicalUrlFromSupabase(
+  client: SupabaseClient,
+  canonicalUrl: string,
+): Promise<Slop | undefined> {
+  const { data: row, error } = await client
+    .from("slop")
+    .select("*")
+    .eq("canonical_url", canonicalUrl)
+    .is("deleted_at", null)
+    .maybeSingle();
+
+  if (error) {
+    throw error;
+  }
+
+  if (!row) {
+    return undefined;
+  }
+
+  const slopRow = row as SlopRow;
+  const reactionRows = await listReactionRows(client, [slopRow.id]);
+  return toSlop(slopRow, reactionRows);
+}
+
 export async function insertSlopIntoSupabase(
   client: SupabaseClient,
   slop: Slop,
 ): Promise<Slop> {
+  const insert = toSlopInsert(slop);
   const { data: row, error } = await client
     .from("slop")
-    .insert(toSlopInsert(slop))
+    .insert(insert)
     .select("*")
     .single();
+
+  if (error && isMissingCanonicalUrlColumnError(error)) {
+    delete insert.canonical_url;
+    const retry = await client.from("slop").insert(insert).select("*").single();
+
+    if (retry.error) {
+      throw retry.error;
+    }
+
+    return toSlop(retry.data as SlopRow);
+  }
 
   if (error) {
     throw error;
@@ -298,4 +334,8 @@ async function listReactionRows(
 
 function normalizeJoinedSlop(slop: SlopRow | SlopRow[] | null): SlopRow | null {
   return Array.isArray(slop) ? (slop[0] ?? null) : slop;
+}
+
+function isMissingCanonicalUrlColumnError(error: { code?: string; message?: string }): boolean {
+  return error.code === "42703" && /canonical_url/i.test(error.message ?? "");
 }

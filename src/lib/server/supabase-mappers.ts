@@ -5,11 +5,13 @@ import {
   type ReactionCounts,
   type Slop,
 } from "@/lib/domain/slop";
+import { canonicalizeSubmissionUrl } from "@/lib/domain/canonical-url";
 
 export type SlopRow = {
   id: string;
   slug: string;
   url: string;
+  canonical_url?: string | null;
   title: string | null;
   tagline: string | null;
   screenshot_url: string | null;
@@ -31,6 +33,7 @@ export type SlopInsert = {
   id: string;
   slug: string;
   url: string;
+  canonical_url?: string;
   title: string;
   tagline: string;
   screenshot_url?: string;
@@ -47,6 +50,7 @@ export function toSlop(row: SlopRow, reactions: ReactionRow[] = []): Slop {
     id: row.id,
     slug: row.slug,
     url: row.url,
+    canonicalUrl: row.canonical_url ?? canonicalizeSubmissionUrl(row.url),
     title: row.title ?? "Untitled Slop",
     tagline: row.tagline ?? "No tagline generated yet",
     screenshotUrl: row.screenshot_url ?? undefined,
@@ -67,6 +71,7 @@ export function toSlopInsert(slop: Slop): SlopInsert {
     id: slop.id,
     slug: slop.slug,
     url: slop.url,
+    canonical_url: slop.canonicalUrl ?? canonicalizeSubmissionUrl(slop.url),
     title: slop.title,
     tagline: slop.tagline,
     screenshot_url: slop.screenshotUrl,

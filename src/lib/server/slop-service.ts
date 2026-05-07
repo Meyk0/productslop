@@ -3,6 +3,7 @@ import "server-only";
 import { randomUUID } from "node:crypto";
 import { nanoid } from "nanoid";
 import { retiredSeedSlugs } from "@/lib/data/mock-slops";
+import { canonicalizeSubmissionUrl } from "@/lib/domain/canonical-url";
 import type { ReactionCounts, Slop } from "@/lib/domain/slop";
 import { createEmptyReactionCounts, createSlug } from "@/lib/domain/slop";
 import {
@@ -18,6 +19,7 @@ import { assertSlopCopySafe, assertSubmissionPreflight } from "@/lib/server/abus
 import { sendMagicLinkEmail } from "@/lib/server/email";
 import { fetchProjectMetadata } from "@/lib/server/microlink";
 import {
+  getSlopByCanonicalUrlFromSupabase,
   getSlopBySlugFromSupabase,
   getSlopByManageTokenFromSupabase,
   insertReactionIntoSupabase,
@@ -31,6 +33,7 @@ import {
   upsertSlopOfTheDayInSupabase,
 } from "@/lib/server/supabase-store";
 import {
+  getLocalSlopByCanonicalUrl,
   getLocalSlopByManageToken,
   getLocalSlopBySlug,
   insertLocalReaction,
@@ -48,6 +51,7 @@ export type SlopOfTheDay = SlopOfTheDaySelection;
 export type CreateSlopResult = {
   slop: Slop;
   emailSent: boolean;
+  duplicate?: boolean;
 };
 
 export async function listSlops(): Promise<Slop[]> {
@@ -108,6 +112,16 @@ export async function createSlop(input: SubmissionInput): Promise<Slop> {
 }
 
 export async function createSlopWithStatus(input: SubmissionInput): Promise<CreateSlopResult> {
+  const canonicalUrl = canonicalizeSubmissionUrl(input.url);
+  const duplicate = await getExistingSlopByCanonicalUrl(canonicalUrl);
+  if (duplicate) {
+    return {
+      slop: stripPrivateSubmissionFields(duplicate),
+      emailSent: false,
+      duplicate: true,
+    };
+  }
+
   await assertSubmissionPreflight({
     url: input.url,
     email: input.email,
@@ -140,6 +154,7 @@ export async function createSlopWithStatus(input: SubmissionInput): Promise<Crea
     id,
     slug: createSlug(title, id),
     url: input.url,
+    canonicalUrl,
     title,
     tagline: metadata.tagline,
     screenshotUrl: projectMetadata.screenshotUrl,
@@ -153,7 +168,23 @@ export async function createSlopWithStatus(input: SubmissionInput): Promise<Crea
     reactionCounts: createEmptyReactionCounts(),
   };
 
-  const savedSlop = client ? await insertSlopIntoSupabase(client, slop) : await insertLocalSlop(slop);
+  let savedSlop: Slop;
+  try {
+    savedSlop = client ? await insertSlopIntoSupabase(client, slop) : await insertLocalSlop(slop);
+  } catch (error) {
+    if (isUniqueConstraintError(error)) {
+      const racedDuplicate = await getExistingSlopByCanonicalUrl(canonicalUrl);
+      if (racedDuplicate) {
+        return {
+          slop: stripPrivateSubmissionFields(racedDuplicate),
+          emailSent: false,
+          duplicate: true,
+        };
+      }
+    }
+
+    throw error;
+  }
   let emailSent = false;
 
   try {
@@ -163,6 +194,52 @@ export async function createSlopWithStatus(input: SubmissionInput): Promise<Crea
   }
 
   return { slop: savedSlop, emailSent };
+}
+
+async function getExistingSlopByCanonicalUrl(canonicalUrl: string): Promise<Slop | undefined> {
+  const client = getSupabaseAdminClient();
+  if (client) {
+    try {
+      return await getSlopByCanonicalUrlFromSupabase(client, canonicalUrl);
+    } catch (error) {
+      if (!isMissingCanonicalUrlColumnError(error)) {
+        logSupabaseReadFallback("get duplicate slop by canonical URL", error);
+      }
+    }
+
+    try {
+      return (await listSlopsFromSupabase(client)).find(
+        (slop) => slop.canonicalUrl === canonicalUrl || canonicalizeSubmissionUrl(slop.url) === canonicalUrl,
+      );
+    } catch (error) {
+      logSupabaseReadFallback("scan duplicate slops", error);
+    }
+  }
+
+  return getLocalSlopByCanonicalUrl(canonicalUrl);
+}
+
+function stripPrivateSubmissionFields(slop: Slop): Slop {
+  return {
+    ...slop,
+    email: undefined,
+    manageToken: undefined,
+  };
+}
+
+function isUniqueConstraintError(error: unknown): boolean {
+  return typeof error === "object" && error !== null && "code" in error && error.code === "23505";
+}
+
+function isMissingCanonicalUrlColumnError(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    error.code === "42703" &&
+    "message" in error &&
+    /canonical_url/i.test(String(error.message))
+  );
 }
 
 export async function recordReaction(params: {

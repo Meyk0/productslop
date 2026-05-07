@@ -96,6 +96,25 @@ describe("local store", () => {
     });
   });
 
+  it("finds active slops by canonical URL variants", async () => {
+    const store = await import("@/lib/server/local-store");
+    const slop = makeSlop();
+
+    await store.insertLocalSlop(slop);
+
+    await expect(
+      store.getLocalSlopByCanonicalUrl("https://example.com/local-slop"),
+    ).resolves.toMatchObject({
+      id: slop.id,
+      slug: slop.slug,
+    });
+
+    await store.softDeleteLocalSlop("manage-token");
+    await expect(
+      store.getLocalSlopByCanonicalUrl("https://example.com/local-slop"),
+    ).resolves.toBeUndefined();
+  });
+
   it("upserts and lists local Slop of the Day winners", async () => {
     const store = await import("@/lib/server/local-store");
     const slop = makeSlop();
@@ -186,6 +205,7 @@ function makeSlop(): Slop {
     id: "local-slop",
     slug: "local-slop",
     url: "https://example.com/local-slop",
+    canonicalUrl: "https://example.com/local-slop",
     title: "Local Slop",
     tagline: "Local fallback",
     type: "demo",

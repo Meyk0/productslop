@@ -6,6 +6,7 @@ const row: SlopRow = {
   id: "4b5bd533-3071-42c6-a864-8e62f2df0665",
   slug: "test-slop",
   url: "https://example.com",
+  canonical_url: "https://example.com",
   title: "Test Slop",
   tagline: "A tested thing",
   screenshot_url: "https://example.com/screenshot.png",
@@ -29,6 +30,7 @@ describe("Supabase mappers", () => {
     ).toMatchObject({
       id: row.id,
       slug: "test-slop",
+      canonicalUrl: "https://example.com",
       title: "Test Slop",
       type: "tool",
       reactionCounts: {
@@ -52,6 +54,7 @@ describe("Supabase mappers", () => {
       id: row.id,
       slug: row.slug,
       url: row.url,
+      canonicalUrl: row.canonical_url ?? undefined,
       title: row.title ?? "Test Slop",
       tagline: row.tagline ?? "A tested thing",
       screenshotUrl: row.screenshot_url ?? undefined,
@@ -69,6 +72,7 @@ describe("Supabase mappers", () => {
       id: row.id,
       slug: "test-slop",
       url: "https://example.com",
+      canonical_url: "https://example.com",
       title: "Test Slop",
       tagline: "A tested thing",
       screenshot_url: "https://example.com/screenshot.png",
