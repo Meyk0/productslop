@@ -11,6 +11,8 @@ import {
   type Slop,
 } from "@/lib/domain/slop";
 
+type ReactionSlop = Pick<Slop, "slug" | "reactionCounts">;
+
 type ConfettiStyle = CSSProperties & {
   "--confetti-x": string;
   "--confetti-y": string;
@@ -25,7 +27,7 @@ export function ReactionMenu({
   slop,
   turnstileSiteKey,
 }: {
-  slop: Slop;
+  slop: ReactionSlop;
   turnstileSiteKey?: string;
 }) {
   const [counts, setCounts] = useState<ReactionCounts>(slop.reactionCounts);
