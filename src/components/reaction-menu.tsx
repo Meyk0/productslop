@@ -2,6 +2,7 @@
 
 import type { CSSProperties } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { trackEvent } from "@/lib/client/analytics";
 import { requestTurnstileToken } from "@/lib/client/turnstile";
 import {
   REACTION_TYPES,
@@ -74,6 +75,7 @@ export function ReactionMenu({
       }
 
       setCounts(data.counts);
+      trackEvent("reaction_click", { reaction_type: reactionType, slug: slop.slug });
       const burstId = burstIdRef.current + 1;
       burstIdRef.current = burstId;
       setBurst({ id: burstId });

@@ -11,7 +11,9 @@ import {
   Share2,
   Sparkles,
 } from "lucide-react";
+import { CopyLinkButton } from "@/components/copy-link-button";
 import { TradingCard } from "@/components/trading-card";
+import { trackEvent } from "@/lib/client/analytics";
 import { requestTurnstileToken } from "@/lib/client/turnstile";
 import { buildLinkedInShareUrl, buildProjectUrl, buildXShareUrl } from "@/lib/domain/share";
 import type { Slop } from "@/lib/domain/slop";
@@ -106,10 +108,17 @@ export function SubmitForm({ turnstileSiteKey }: { turnstileSiteKey?: string }) 
       setDuplicate(Boolean(data.duplicate));
       setSlop(data.slop);
       setStatus("revealed");
+      trackEvent(data.duplicate ? "duplicate_submit" : "submit_success", {
+        email_sent: Boolean(data.emailSent),
+        slug: data.slop.slug,
+        type: data.slop.type,
+      });
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "The slop machine jammed.");
+      const message = caught instanceof Error ? caught.message : "The slop machine jammed.";
+      setError(message);
       setDuplicate(false);
       setStatus("idle");
+      trackEvent("submit_error", { source: "submit_form" });
     } finally {
       window.clearInterval(spinner);
     }
@@ -136,6 +145,7 @@ export function SubmitForm({ turnstileSiteKey }: { turnstileSiteKey?: string }) 
       }
 
       setSlop(data.slop);
+      trackEvent("reslop_success", { slug: data.slop.slug, type: data.slop.type });
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "The reslop button ran out of vibes.");
     } finally {
@@ -294,6 +304,8 @@ export function SubmitForm({ turnstileSiteKey }: { turnstileSiteKey?: string }) 
                   Public page
                   <ExternalLink className="size-4" />
                 </Link>
+
+                <CopyLinkButton url={projectUrl} slug={slop.slug} source="submit" />
 
                 <a
                   href={xShareUrl}

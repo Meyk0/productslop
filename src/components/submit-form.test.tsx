@@ -14,6 +14,7 @@ const originalRequestAnimationFrame = window.requestAnimationFrame;
 
 beforeEach(() => {
   requestTurnstileTokenMock.mockResolvedValue(undefined);
+  window.gtag = vi.fn();
   Element.prototype.scrollIntoView = vi.fn();
   window.requestAnimationFrame = (callback) => {
     callback(0);
@@ -38,6 +39,7 @@ afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
+  delete window.gtag;
   Element.prototype.scrollIntoView = originalScrollIntoView;
   window.requestAnimationFrame = originalRequestAnimationFrame;
 });
@@ -64,6 +66,11 @@ describe("SubmitForm", () => {
     expect(await screen.findByText("Slop uploaded. Card minted.")).toBeVisible();
     expect(screen.getByText("Manage link ready")).toBeVisible();
     expect(screen.getByText("Email is not configured here, so use the edit/delete link below.")).toBeVisible();
+    expect(window.gtag).toHaveBeenCalledWith("event", "submit_success", {
+      email_sent: false,
+      slug: "evalarena",
+      type: "tool",
+    });
     await waitFor(() => expect(Element.prototype.scrollIntoView).toHaveBeenCalled());
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
@@ -91,6 +98,11 @@ describe("SubmitForm", () => {
 
     expect(await screen.findByText("Already on the board.")).toBeVisible();
     expect(screen.getByText("We found the existing card instead of minting a duplicate.")).toBeVisible();
+    expect(window.gtag).toHaveBeenCalledWith("event", "duplicate_submit", {
+      email_sent: false,
+      slug: "evalarena",
+      type: "tool",
+    });
     expect(screen.queryByText("Edit or delete this launch")).not.toBeInTheDocument();
   });
 });
