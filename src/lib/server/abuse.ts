@@ -11,6 +11,7 @@ import {
 import { MemoryRateLimiter, type RateLimitDecision } from "@/lib/domain/rate-limit";
 
 const limiter = new MemoryRateLimiter();
+const defaultSubmissionLimitPerHour = process.env.NODE_ENV === "production" ? 10 : 50;
 
 export function hashIp(ip: string): string {
   const salt = process.env.IP_HASH_SALT ?? "local-dev-salt";
@@ -20,7 +21,7 @@ export function hashIp(ip: string): string {
 export function checkSubmissionRateLimit(ip: string): RateLimitDecision {
   return limiter.check({
     key: `submit:${hashIp(ip)}`,
-    limit: 3,
+    limit: readPositiveIntegerEnv("SUBMISSION_RATE_LIMIT_PER_HOUR", defaultSubmissionLimitPerHour),
     windowMs: 60 * 60 * 1000,
   });
 }
@@ -31,6 +32,16 @@ export function checkReactionRateLimit(ip: string): RateLimitDecision {
     limit: 60,
     windowMs: 60 * 60 * 1000,
   });
+}
+
+function readPositiveIntegerEnv(key: string, fallback: number): number {
+  const value = process.env[key];
+  if (!value) {
+    return fallback;
+  }
+
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
 }
 
 export async function verifyTurnstileToken({
