@@ -1,6 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { lookup } from "node:dns/promises";
-import { checkPublicUrlResolution, checkSafeBrowsingUrl } from "@/lib/server/abuse";
+import {
+  checkPublicUrlResolution,
+  checkSafeBrowsingUrl,
+  checkSubmissionRateLimit,
+} from "@/lib/server/abuse";
 
 vi.mock("server-only", () => ({}));
 const dnsLookupMock = vi.hoisted(() => vi.fn());
@@ -75,6 +79,27 @@ describe("Safe Browsing adapter", () => {
       ok: false,
       message: "That URL is flagged by Safe Browsing.",
     });
+  });
+});
+
+describe("submission rate limits", () => {
+  it("allows a practical local seeding burst by default", () => {
+    const ip = "203.0.113.50";
+
+    for (let attempt = 0; attempt < 50; attempt += 1) {
+      expect(checkSubmissionRateLimit(ip)).toMatchObject({ allowed: true });
+    }
+
+    expect(checkSubmissionRateLimit(ip)).toMatchObject({ allowed: false });
+  });
+
+  it("can be tuned with an environment variable", () => {
+    vi.stubEnv("SUBMISSION_RATE_LIMIT_PER_HOUR", "2");
+    const ip = "203.0.113.51";
+
+    expect(checkSubmissionRateLimit(ip)).toMatchObject({ allowed: true });
+    expect(checkSubmissionRateLimit(ip)).toMatchObject({ allowed: true });
+    expect(checkSubmissionRateLimit(ip)).toMatchObject({ allowed: false });
   });
 });
 
