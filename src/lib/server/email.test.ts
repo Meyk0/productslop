@@ -27,7 +27,7 @@ describe("email delivery", () => {
   });
 
   it("sends manage links with the configured sender and site URL", async () => {
-    const send = vi.fn().mockResolvedValue({});
+    const send = vi.fn().mockResolvedValue({ data: { id: "email-id" } });
     getResendClientMock.mockReturnValue({ emails: { send } } as never);
     vi.stubEnv("RESEND_FROM", "Product Slop <verified@example.com>");
     vi.stubEnv("NEXT_PUBLIC_SITE_URL", "https://productslop.vercel.app");
@@ -43,7 +43,7 @@ describe("email delivery", () => {
   });
 
   it("falls back to Vercel production URLs for manage links", async () => {
-    const send = vi.fn().mockResolvedValue({});
+    const send = vi.fn().mockResolvedValue({ data: { id: "email-id" } });
     getResendClientMock.mockReturnValue({ emails: { send } } as never);
     vi.stubEnv("RESEND_FROM", "Product Slop <verified@example.com>");
     vi.stubEnv("VERCEL_PROJECT_PRODUCTION_URL", "productslop.vercel.app");
@@ -54,6 +54,35 @@ describe("email delivery", () => {
         text: expect.stringContaining("https://productslop.vercel.app/manage/manage-token"),
       }),
     );
+  });
+
+  it("reports unsent when Resend returns an SDK error", async () => {
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+    const send = vi.fn().mockResolvedValue({
+      data: null,
+      error: {
+        message: "Domain is not verified",
+        name: "validation_error",
+      },
+    });
+    getResendClientMock.mockReturnValue({ emails: { send } } as never);
+    vi.stubEnv("RESEND_FROM", "Product Slop <unverified@example.com>");
+    vi.stubEnv("NEXT_PUBLIC_SITE_URL", "https://productslop.vercel.app");
+
+    await expect(sendMagicLinkEmail(makeSlop())).resolves.toEqual({ sent: false });
+    expect(consoleError).toHaveBeenCalledWith(
+      "Resend rejected Product Slop magic link",
+      expect.objectContaining({ message: "Domain is not verified" }),
+    );
+  });
+
+  it("reports unsent when Resend does not return a message id", async () => {
+    const send = vi.fn().mockResolvedValue({ data: null, error: null });
+    getResendClientMock.mockReturnValue({ emails: { send } } as never);
+    vi.stubEnv("RESEND_FROM", "Product Slop <verified@example.com>");
+    vi.stubEnv("NEXT_PUBLIC_SITE_URL", "https://productslop.vercel.app");
+
+    await expect(sendMagicLinkEmail(makeSlop())).resolves.toEqual({ sent: false });
   });
 });
 

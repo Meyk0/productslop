@@ -65,7 +65,7 @@ describe("SubmitForm", () => {
 
     expect(await screen.findByText("Slop uploaded. Card minted.")).toBeVisible();
     expect(screen.getByText("Manage link ready")).toBeVisible();
-    expect(screen.getByText("Email is not configured here, so use the edit/delete link below.")).toBeVisible();
+    expect(screen.getByText("Email did not send, so use the edit/delete link below.")).toBeVisible();
     expect(window.gtag).toHaveBeenCalledWith("event", "submit_success", {
       email_sent: false,
       slug: "evalarena",

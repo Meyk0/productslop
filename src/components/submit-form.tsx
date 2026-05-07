@@ -278,7 +278,7 @@ export function SubmitForm({ turnstileSiteKey }: { turnstileSiteKey?: string }) 
 
               {slop.email && !emailSent ? (
                 <p className="mt-3 rounded-[8px] border border-amber-200 bg-amber-50 p-3 text-sm font-semibold leading-6 text-amber-800">
-                  Email is not configured here, so use the edit/delete link below.
+                  Email did not send, so use the edit/delete link below.
                 </p>
               ) : null}
 

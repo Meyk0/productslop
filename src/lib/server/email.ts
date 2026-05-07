@@ -17,7 +17,7 @@ export async function sendMagicLinkEmail(slop: Slop): Promise<{ sent: boolean }>
   const siteUrl = resolveSiteUrl();
   const manageUrl = new URL(`/manage/${slop.manageToken}`, siteUrl);
 
-  await resend.emails.send({
+  const { data, error } = await resend.emails.send({
     from,
     to: slop.email,
     subject: `Manage ${slop.title} on Product Slop`,
@@ -28,7 +28,12 @@ export async function sendMagicLinkEmail(slop: Slop): Promise<{ sent: boolean }>
     ].join("\n"),
   });
 
-  return { sent: true };
+  if (error) {
+    console.error("Resend rejected Product Slop magic link", error);
+    return { sent: false };
+  }
+
+  return { sent: Boolean(data?.id) };
 }
 
 function resolveSiteUrl(): string {
