@@ -2,6 +2,7 @@ with seeded_slops(
   id,
   slug,
   url,
+  canonical_url,
   title,
   tagline,
   type,
@@ -13,6 +14,7 @@ with seeded_slops(
       '00000000-0000-4000-8000-000000000007'::uuid,
       'standup-arcade-order-picker',
       'https://www.standuparca.de',
+      'https://www.standuparca.de',
       'Standup Arcade',
       'A retro slot machine that picks standup order before the meeting stalls',
       'game',
@@ -22,6 +24,7 @@ with seeded_slops(
     (
       '00000000-0000-4000-8000-000000000008'::uuid,
       'evalarena-llm-evals',
+      'https://evalarena.xyz',
       'https://evalarena.xyz',
       'EvalArena',
       'Practice LLM evals with real-world challenges and hidden tests',
@@ -35,6 +38,7 @@ upserted_slops as (
     id,
     slug,
     url,
+    canonical_url,
     title,
     tagline,
     type,
@@ -47,6 +51,7 @@ upserted_slops as (
     id,
     slug,
     url,
+    canonical_url,
     title,
     tagline,
     type,
@@ -57,6 +62,7 @@ upserted_slops as (
   from seeded_slops
   on conflict (slug) do update set
     url = excluded.url,
+    canonical_url = excluded.canonical_url,
     title = excluded.title,
     tagline = excluded.tagline,
     type = excluded.type,

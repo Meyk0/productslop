@@ -84,6 +84,7 @@ export type Slop = {
   id: string;
   slug: string;
   url: string;
+  canonicalUrl?: string;
   title: string;
   tagline: string;
   screenshotUrl?: string;

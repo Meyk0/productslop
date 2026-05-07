@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { SubmitForm } from "@/components/submit-form";
 import { requestTurnstileToken } from "@/lib/client/turnstile";
@@ -35,6 +35,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  cleanup();
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
   Element.prototype.scrollIntoView = originalScrollIntoView;
@@ -72,9 +73,29 @@ describe("SubmitForm", () => {
       email: "maker@example.com",
     });
   });
+
+  it("shows existing-card copy for duplicate submissions", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ slop: makeSlop({ email: undefined }), duplicate: true }), {
+        status: 201,
+        headers: { "content-type": "application/json" },
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { container } = render(<SubmitForm />);
+    fireEvent.change(screen.getByPlaceholderText("your-weekend-build.ai"), {
+      target: { value: "evalarena.xyz/?utm_source=launch" },
+    });
+    fireEvent.submit(container.querySelector("form") as HTMLFormElement);
+
+    expect(await screen.findByText("Already on the board.")).toBeVisible();
+    expect(screen.getByText("We found the existing card instead of minting a duplicate.")).toBeVisible();
+    expect(screen.queryByText("Edit or delete this launch")).not.toBeInTheDocument();
+  });
 });
 
-function makeSlop(): Slop {
+function makeSlop(overrides: Partial<Slop> = {}): Slop {
   return {
     id: "evalarena",
     slug: "evalarena",
@@ -89,5 +110,6 @@ function makeSlop(): Slop {
     founding: false,
     createdAt: "2026-05-06T20:00:00.000Z",
     reactionCounts: createEmptyReactionCounts(),
+    ...overrides,
   };
 }

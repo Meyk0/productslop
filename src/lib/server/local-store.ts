@@ -4,6 +4,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import type { ReactionCounts, Slop } from "@/lib/domain/slop";
 import { createEmptyReactionCounts, isReactionType } from "@/lib/domain/slop";
+import { canonicalizeSubmissionUrl } from "@/lib/domain/canonical-url";
 import { applyReaction, reactionLedgerKey } from "@/lib/domain/reactions";
 import { retiredSeedSlugs, seedSlops } from "@/lib/data/mock-slops";
 
@@ -38,6 +39,15 @@ export async function getLocalSlopBySlug(slug: string): Promise<Slop | undefined
 export async function getLocalSlopByManageToken(token: string): Promise<Slop | undefined> {
   const store = await readLocalStore();
   return store.slops.find((slop) => slop.manageToken === token && !slop.deletedAt);
+}
+
+export async function getLocalSlopByCanonicalUrl(
+  canonicalUrl: string,
+): Promise<Slop | undefined> {
+  const store = await readLocalStore();
+  return store.slops.find(
+    (slop) => !slop.deletedAt && slopCanonicalUrl(slop) === canonicalUrl,
+  );
 }
 
 export async function insertLocalSlop(slop: Slop): Promise<Slop> {
@@ -254,10 +264,11 @@ function normalizeSlops(slops: unknown): Slop[] {
     return [];
   }
 
-  return slops.map((slop) => ({
-    ...(slop as Slop),
-    reslopUsed: (slop as Slop).reslopUsed ?? false,
-    reactionCounts: {
+    return slops.map((slop) => ({
+      ...(slop as Slop),
+      canonicalUrl: (slop as Slop).canonicalUrl ?? canonicalizeSubmissionUrl((slop as Slop).url),
+      reslopUsed: (slop as Slop).reslopUsed ?? false,
+      reactionCounts: {
       ...createEmptyReactionCounts(),
       ...(slop as Slop).reactionCounts,
     },
@@ -287,4 +298,8 @@ function normalizeSlopOfTheDay(slops: unknown): LocalStore["slopOfTheDay"] {
       },
     ];
   });
+}
+
+function slopCanonicalUrl(slop: Slop): string {
+  return slop.canonicalUrl ?? canonicalizeSubmissionUrl(slop.url);
 }

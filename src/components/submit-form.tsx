@@ -30,6 +30,7 @@ export function SubmitForm({ turnstileSiteKey }: { turnstileSiteKey?: string }) 
   const [error, setError] = useState<string | null>(null);
   const [slop, setSlop] = useState<Slop | null>(null);
   const [emailSent, setEmailSent] = useState(false);
+  const [duplicate, setDuplicate] = useState(false);
   const [copyIndex, setCopyIndex] = useState(0);
   const resultRef = useRef<HTMLDivElement>(null);
   const loadingLine = useMemo(() => loadingCopy[copyIndex % loadingCopy.length], [copyIndex]);
@@ -45,6 +46,7 @@ export function SubmitForm({ turnstileSiteKey }: { turnstileSiteKey?: string }) 
   const linkedInShareUrl = slop
     ? buildLinkedInShareUrl(projectUrl)
     : "https://www.linkedin.com/sharing/share-offsite/";
+  const canManage = Boolean(slop?.manageToken && !duplicate);
 
   useEffect(() => {
     if (status !== "revealed" || !slop || !resultRef.current) {
@@ -89,17 +91,24 @@ export function SubmitForm({ turnstileSiteKey }: { turnstileSiteKey?: string }) 
         body: JSON.stringify(payload),
       });
 
-      const data = (await response.json()) as { slop?: Slop; emailSent?: boolean; error?: string };
+      const data = (await response.json()) as {
+        slop?: Slop;
+        emailSent?: boolean;
+        duplicate?: boolean;
+        error?: string;
+      };
 
       if (!response.ok || !data.slop) {
         throw new Error(data.error ?? "The slop machine jammed.");
       }
 
       setEmailSent(Boolean(data.emailSent));
+      setDuplicate(Boolean(data.duplicate));
       setSlop(data.slop);
       setStatus("revealed");
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "The slop machine jammed.");
+      setDuplicate(false);
       setStatus("idle");
     } finally {
       window.clearInterval(spinner);
@@ -107,7 +116,7 @@ export function SubmitForm({ turnstileSiteKey }: { turnstileSiteKey?: string }) 
   }
 
   async function reslopTagline() {
-    if (!slop?.manageToken || slop.reslopUsed) {
+    if (!canManage || !slop?.manageToken || slop.reslopUsed) {
       return;
     }
 
@@ -224,9 +233,13 @@ export function SubmitForm({ turnstileSiteKey }: { turnstileSiteKey?: string }) 
               <div className="flex items-start gap-3">
                 <CheckCircle2 className="mt-0.5 size-5 shrink-0" />
                 <div>
-                  <p className="font-black">Slop uploaded. Card minted.</p>
+                  <p className="font-black">
+                    {duplicate ? "Already on the board." : "Slop uploaded. Card minted."}
+                  </p>
                   <p className="mt-1 text-sm leading-6">
-                    The public card is ready below with share and edit links.
+                    {duplicate
+                      ? "We found the existing card instead of minting a duplicate."
+                      : "The public card is ready below with share and edit links."}
                   </p>
                 </div>
               </div>
@@ -263,7 +276,7 @@ export function SubmitForm({ turnstileSiteKey }: { turnstileSiteKey?: string }) 
                 <button
                   type="button"
                   onClick={reslopTagline}
-                  disabled={!slop.manageToken || slop.reslopUsed || reslopStatus === "loading"}
+                  disabled={!canManage || slop.reslopUsed || reslopStatus === "loading"}
                   className="inline-flex h-11 items-center justify-center gap-2 rounded-full border border-line bg-white px-4 text-sm font-black transition hover:border-slate-300 disabled:cursor-not-allowed disabled:opacity-55"
                 >
                   {reslopStatus === "loading" ? (
@@ -303,7 +316,7 @@ export function SubmitForm({ turnstileSiteKey }: { turnstileSiteKey?: string }) 
                 </a>
               </div>
 
-              {slop.manageToken ? (
+              {canManage && slop.manageToken ? (
                 <Link
                   href={`/manage/${slop.manageToken}`}
                   className="mt-3 inline-flex text-sm font-bold text-slop-orange hover:text-slop-orange-strong"

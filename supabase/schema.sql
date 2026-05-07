@@ -2,6 +2,7 @@ create table if not exists slop (
   id uuid primary key default gen_random_uuid(),
   slug text unique not null,
   url text not null,
+  canonical_url text,
   title text,
   tagline text,
   screenshot_url text,
@@ -43,6 +44,9 @@ create table if not exists slop_of_the_day (
 create index if not exists slop_created_at_idx on slop(created_at desc);
 create index if not exists slop_deleted_at_idx on slop(deleted_at);
 create index if not exists slop_manage_token_idx on slop(manage_token);
+create unique index if not exists slop_active_canonical_url_unique_idx
+  on slop(canonical_url)
+  where deleted_at is null and canonical_url is not null;
 create index if not exists reaction_slop_id_idx on reaction(slop_id);
 create index if not exists reaction_created_at_idx on reaction(created_at desc);
 create index if not exists slop_of_the_day_slop_id_idx on slop_of_the_day(slop_id);

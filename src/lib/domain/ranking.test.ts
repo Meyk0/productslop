@@ -51,9 +51,10 @@ describe("feed ranking", () => {
       reactionCounts: { ...createEmptyReactionCounts(), "peak-slop": 7 },
     });
 
-    expect(rankSlops([newer, olderWinner], "today").map((item) => item.id)).toEqual([
-      "olderWinner",
-      "newer",
-    ]);
+    expect(
+      rankSlops([newer, olderWinner], "today", new Date("2026-05-06T12:00:00.000Z")).map(
+        (item) => item.id,
+      ),
+    ).toEqual(["olderWinner", "newer"]);
   });
 });

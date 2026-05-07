@@ -2,11 +2,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createEmptyReactionCounts, type Slop } from "@/lib/domain/slop";
 import { getSupabaseAdminClient } from "@/lib/server/clients";
 import {
+  getSlopByCanonicalUrlFromSupabase,
   getSlopBySlugFromSupabase,
   listSlopOfTheDayFromSupabase,
   listSlopsFromSupabase,
 } from "@/lib/server/supabase-store";
 import {
+  getLocalSlopByCanonicalUrl,
   getLocalSlopBySlug,
   insertLocalSlop,
   listLocalSlopOfTheDay,
@@ -30,6 +32,7 @@ vi.mock("@/lib/server/clients", () => ({
 }));
 
 vi.mock("@/lib/server/supabase-store", () => ({
+  getSlopByCanonicalUrlFromSupabase: vi.fn(),
   getSlopByManageTokenFromSupabase: vi.fn(),
   getSlopBySlugFromSupabase: vi.fn(),
   insertReactionIntoSupabase: vi.fn(),
@@ -44,6 +47,7 @@ vi.mock("@/lib/server/supabase-store", () => ({
 }));
 
 vi.mock("@/lib/server/local-store", () => ({
+  getLocalSlopByCanonicalUrl: vi.fn(),
   getLocalSlopByManageToken: vi.fn(),
   getLocalSlopBySlug: vi.fn(),
   insertLocalReaction: vi.fn(),
@@ -77,9 +81,11 @@ vi.mock("@/lib/server/microlink", () => ({
 
 const getSupabaseAdminClientMock = vi.mocked(getSupabaseAdminClient);
 const listSlopsFromSupabaseMock = vi.mocked(listSlopsFromSupabase);
+const getSlopByCanonicalUrlFromSupabaseMock = vi.mocked(getSlopByCanonicalUrlFromSupabase);
 const getSlopBySlugFromSupabaseMock = vi.mocked(getSlopBySlugFromSupabase);
 const listSlopOfTheDayFromSupabaseMock = vi.mocked(listSlopOfTheDayFromSupabase);
 const listLocalSlopsMock = vi.mocked(listLocalSlops);
+const getLocalSlopByCanonicalUrlMock = vi.mocked(getLocalSlopByCanonicalUrl);
 const getLocalSlopBySlugMock = vi.mocked(getLocalSlopBySlug);
 const listLocalSlopOfTheDayMock = vi.mocked(listLocalSlopOfTheDay);
 const insertLocalSlopMock = vi.mocked(insertLocalSlop);
@@ -135,8 +141,34 @@ describe("slop service read fallbacks", () => {
 });
 
 describe("slop service creation", () => {
+  it("returns an existing active slop for duplicate submissions without leaking manage fields", async () => {
+    const existing = makeSlop({
+      url: "https://evalarena.xyz/",
+      canonicalUrl: "https://evalarena.xyz",
+      email: "owner@example.com",
+      manageToken: "private-token",
+    });
+    getSupabaseAdminClientMock.mockReturnValue(null);
+    getLocalSlopByCanonicalUrlMock.mockResolvedValue(existing);
+
+    const result = await createSlopWithStatus({
+      url: "https://evalarena.xyz/?utm_source=launch",
+      email: "other@example.com",
+    });
+
+    expect(result.duplicate).toBe(true);
+    expect(result.emailSent).toBe(false);
+    expect(result.slop.slug).toBe(existing.slug);
+    expect(result.slop.email).toBeUndefined();
+    expect(result.slop.manageToken).toBeUndefined();
+    expect(assertSubmissionPreflightMock).not.toHaveBeenCalled();
+    expect(fetchProjectMetadataMock).not.toHaveBeenCalled();
+    expect(insertLocalSlopMock).not.toHaveBeenCalled();
+  });
+
   it("returns email delivery status and keeps fetched screenshots", async () => {
     getSupabaseAdminClientMock.mockReturnValue(null);
+    getLocalSlopByCanonicalUrlMock.mockResolvedValue(undefined);
     listLocalSlopsMock.mockResolvedValue([]);
     fetchProjectMetadataMock.mockResolvedValue({
       title: "EvalArena",
@@ -166,17 +198,51 @@ describe("slop service creation", () => {
       tagline: "Eval slop with a leaderboard and a tiny clipboard cape",
     });
     expect(result.emailSent).toBe(false);
+    expect(result.duplicate).toBeUndefined();
     expect(result.slop.title).toBe("EvalArena");
+    expect(result.slop.canonicalUrl).toBe("https://evalarena.xyz");
     expect(result.slop.screenshotUrl).toBe("https://cdn.example/evalarena.png");
     expect(sendMagicLinkEmailMock).toHaveBeenCalledWith(result.slop);
   });
+
+  it("returns an existing Supabase slop when a unique insert races", async () => {
+    const existing = makeSlop({
+      url: "https://evalarena.xyz/",
+      canonicalUrl: "https://evalarena.xyz",
+    });
+    getSupabaseAdminClientMock.mockReturnValue({} as never);
+    getSlopByCanonicalUrlFromSupabaseMock
+      .mockResolvedValueOnce(undefined)
+      .mockResolvedValueOnce(existing);
+    fetchProjectMetadataMock.mockResolvedValue({
+      title: "EvalArena",
+      description: "Practice LLM evals with real-world challenges.",
+    });
+    generateSlopMetadataMock.mockResolvedValue({
+      tagline: "Eval slop with a leaderboard and a tiny clipboard cape",
+      type: "tool",
+      moderation_flag: false,
+      moderation_reason: null,
+    });
+    const { insertSlopIntoSupabase } = await import("@/lib/server/supabase-store");
+    vi.mocked(insertSlopIntoSupabase).mockRejectedValue({ code: "23505" });
+
+    const result = await createSlopWithStatus({
+      url: "https://evalarena.xyz/",
+    });
+
+    expect(result.duplicate).toBe(true);
+    expect(result.slop.slug).toBe(existing.slug);
+    expect(result.slop.manageToken).toBeUndefined();
+  });
 });
 
-function makeSlop(): Slop {
+function makeSlop(overrides: Partial<Slop> = {}): Slop {
   return {
     id: "local-slop",
     slug: "local-slop",
     url: "https://example.com/local-slop",
+    canonicalUrl: "https://example.com/local-slop",
     title: "Local Slop",
     tagline: "Local fallback",
     type: "demo",
@@ -186,5 +252,6 @@ function makeSlop(): Slop {
     founding: true,
     createdAt: "2026-05-06T10:00:00.000Z",
     reactionCounts: createEmptyReactionCounts(),
+    ...overrides,
   };
 }
