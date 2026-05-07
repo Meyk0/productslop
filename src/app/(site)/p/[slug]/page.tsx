@@ -81,7 +81,10 @@ export default async function ProjectPage({ params, searchParams }: ProjectPageP
           </div>
 
           <ReactionMenu
-            slop={slop}
+            slop={{
+              slug: slop.slug,
+              reactionCounts: slop.reactionCounts,
+            }}
             turnstileSiteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
           />
 

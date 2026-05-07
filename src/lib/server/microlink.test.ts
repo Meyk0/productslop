@@ -41,6 +41,7 @@ describe("Microlink metadata adapter", () => {
     expect(url.searchParams.get("screenshot")).toBe("true");
     expect(url.searchParams.has("meta")).toBe(false);
     expect(request.headers).toBeUndefined();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
   it("attaches the API key when a paid key is configured", async () => {
@@ -57,5 +58,63 @@ describe("Microlink metadata adapter", () => {
 
     const [, request] = fetchMock.mock.calls[0] as [URL, RequestInit];
     expect(request.headers).toEqual({ "x-api-key": "micro-key" });
+  });
+
+  it("falls back to page metadata and rewrites inaccessible deployment OG images", async () => {
+    vi.stubEnv("MICROLINK_API_KEY", "");
+    const html = [
+      "<!doctype html><html><head>",
+      "<title>Fallback title</title>",
+      '<meta property="og:title" content="Engram - See your AI think" />',
+      '<meta name="description" content="A 3D brain visualizer." />',
+      '<meta property="og:image" content="https://preview.example.com/engram-og.png" />',
+      "</head><body></body></html>",
+    ].join("");
+    const pageResponse = new Response(html, {
+      status: 200,
+      headers: { "content-type": "text/html; charset=utf-8" },
+    });
+    Object.defineProperty(pageResponse, "url", {
+      value: "https://www.engramviz.com/",
+    });
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ status: "fail" }), {
+          status: 500,
+          headers: { "content-type": "application/json" },
+        }),
+      )
+      .mockResolvedValueOnce(pageResponse)
+      .mockResolvedValueOnce(
+        new Response("", {
+          status: 401,
+          headers: { "content-type": "text/html" },
+        }),
+      )
+      .mockResolvedValueOnce(
+        new Response("", {
+          status: 200,
+          headers: { "content-type": "image/png" },
+        }),
+      );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(fetchProjectMetadata("https://engramviz.com/")).resolves.toEqual({
+      title: "Engram - See your AI think",
+      description: "A 3D brain visualizer.",
+      screenshotUrl: "https://www.engramviz.com/engram-og.png",
+    });
+
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      3,
+      "https://preview.example.com/engram-og.png",
+      expect.objectContaining({ method: "HEAD" }),
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      4,
+      "https://www.engramviz.com/engram-og.png",
+      expect.objectContaining({ method: "HEAD" }),
+    );
   });
 });
